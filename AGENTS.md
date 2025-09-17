@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `src/blog_pipeline/`：风格分析、调研整合、大纲生成、草稿写作、风格/事实校验等核心模块（待实现）。
+- `src/blog_pipeline/`：已实现风格分析 (`style.py`)、草稿校验 (`check.py`)、文本指标工具 (`text_utils.py`)，其余模块（调研、提纲、草稿生成）待扩展。
 - `state/`：多代理共享的事实源。
   - `STATUS.yaml` — 阶段与任务依赖（plan → research → outline → draft → review → publish）。
   - `STYLE_PROFILE.md` — 来源于示例文章的语气画像。
@@ -16,11 +16,8 @@
 
 ## Build, Test, Development Commands
 - 风格提炼：`python -m src.blog_pipeline.cli init-style --corpus /Users/wsy/Dropbox/example-blog-articles --output state/STYLE_PROFILE.md`
-- 素材整合：`python -m src.blog_pipeline.cli material --topic "<主题>" --input inbox/materials.yaml`
-- 调研执行：`python -m src.blog_pipeline.cli research --plan state/PUBLISH_PLAN.md --output state/RESEARCH_SUMMARY.md`
-- 生成大纲：`python -m src.blog_pipeline.cli outline --summary state/RESEARCH_SUMMARY.md --profile state/STYLE_PROFILE.md`
-- 草稿撰写：`python -m src.blog_pipeline.cli draft --outline state/POST_OUTLINE.md --output draft/post.md`
 - 风格/事实校验：`python -m src.blog_pipeline.cli check --draft draft/post.md --profile state/STYLE_PROFILE.md --sources state/SOURCES.md`
+- 其他阶段（素材审计、调研、提纲、撰写）暂由对应代理直接编辑 `state/` 文档完成，后续会增补 CLI 子命令以统一调度。
 - 调度守卫：`python tools/run_stage.py [--stage <name>] [--run]`
 - 测试占位：`pytest -q`（建成后需覆盖 style、research、outline、draft、editor 模块）。
 
@@ -36,7 +33,7 @@
 - Python：4 空格缩进，类型注解，函数聚焦单一职责，必要时添加简短注释解释意图。
 - Markdown：使用自然段，不滥用列表；引用格式 `[@key]` 与 `state/SOURCES.md` 对应；图片使用 Obsidian 语法 `![[assets/...]]`。
 - 文件命名：`draft/post.md` 为最终稿；草稿中间版本可命名 `draft/post_v1.md`（需在 `state/ITERATIONS.md` 登记）。
-- 结果文件：`results/style_check.json`、`results/fact_check.log`、`results/question_density.csv` 等；`tools/run_stage.py` 允许前缀 `style_`, `fact_`, `outline_`, `draft_`。
+- 结果文件：`results/style_check.json`、`results/fact_check.log`、`results/question_density.csv` 等；`tools/run_stage.py` 允许显式文件名或前缀 `style_`, `fact_`, `outline_`, `draft_`。
 
 ## Testing Guidelines
 - `tests/` 下按模块建立文件（如 `test_style.py`, `test_outline.py`），输出 ≥80% 关键函数覆盖率。

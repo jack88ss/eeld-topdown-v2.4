@@ -1,43 +1,39 @@
 # 内容与工具规范
 
 ## 模块 / 组件
-- **src/blog_pipeline/style.py** — 从示例文章抽取语气、句式、设问密度等特征，生成 `style.StyleProfile`。
-- **src/blog_pipeline/research.py** — 聚合用户素材与外部检索结果，产出结构化事实摘要，写回 `state/RESEARCH_SUMMARY.md`。
-- **src/blog_pipeline/outline.py** — 根据风格与事实生成模块化大纲，更新 `state/POST_OUTLINE.md`。
-- **src/blog_pipeline/drafter.py** — 依据大纲与风格生成草稿骨架，写入 `state/POST.md` 与 `draft/post.md`。
-- **src/blog_pipeline/editor.py** — 运行风格匹配、设问/人称统计、事实核对；输出 `results/style_check.json`、`results/fact_check.log`。
-- **src/blog_pipeline/cli.py** — 命令行入口，协调各阶段任务，可在 `tools/run_stage.py` 调度中被引用。
-- **tests/** — 覆盖风格指标计算、素材聚合、草稿检查等核心函数。
+- **src/blog_pipeline/style.py** — 从示例文章抽取语气、句式、设问密度等特征，生成 `StyleProfile` 并写入 `state/STYLE_PROFILE.md` + JSON 缓存。
+- **src/blog_pipeline/check.py** — 运行风格匹配、设问/人称统计、图像密度与引用检查；输出 `results/style_check.json`、`results/fact_check.log`。
+- **src/blog_pipeline/text_utils.py** — 共有的段落/句子分割与指标计算函数。
+- **src/blog_pipeline/cli.py** — 暴露 `init-style`、`check` 子命令，供 orchestrator 或手动触发。
+- **未来模块占位**：`research.py`、`outline.py`、`drafter.py`、`editor.py` 可按需要逐步补齐，用于自动化调研、大纲与草稿。
+- **tests/** — 覆盖现有模块（`style`、`check`、`text_utils`）的核心函数，新增模块时同步补测。
 
 ## 数据流
 1. **风格提炼**：`style.extract_profile(sample_paths)` → 写入 `state/STYLE_PROFILE.md`。
-2. **素材审计**：coordinator 整理用户输入 → `state/MATERIAL_AUDIT.md`。
-3. **资料整合**：`research.merge(materials, queries)` → 生成 `state/RESEARCH_SUMMARY.md`、更新 `state/SOURCES.md`。
-4. **大纲生成**：`outline.build(profile, summary)` → 更新 `state/POST_OUTLINE.md`。
-5. **草稿撰写**：`drafter.compose(outline, profile, materials)` → 写入 `state/POST.md`、`draft/post.md`。
-6. **编辑校验**：`editor.check(draft_path, profile, sources)` → 输出风格分数、设问/人称计数、引用检查。
-7. **发布打包**：`editor.package(draft_path, figures_dir)` → 确认 Markdown、图像与 `.meta.json` 一致，准备发布目录。
+2. **素材审计**：coordinator 手动整理用户输入 → `state/MATERIAL_AUDIT.md`（未来可由脚本补充）。
+3. **资料整合**：researcher 手动或脚本化更新 `state/RESEARCH_SUMMARY.md`、`state/SOURCES.md`。
+4. **大纲生成**：outliner 在 `state/POST_OUTLINE.md` 维护模块顺序与要点。
+5. **草稿撰写**：writer 在 `state/POST.md`、`draft/post.md` 完成正文与图像占位。
+6. **编辑校验**：`check.check_draft` + `check.fact_check` 组合生成风格与事实报告。
+7. **发布打包**：publisher 对 `draft/post.md`、`figures/`、`.meta.json` 做最终确认。
 
 ## 关键函数
 ```python
 StyleProfile.from_corpus(paths: Sequence[Path]) -> StyleProfile
-collect_materials(inputs: MaterialBundle) -> MaterialDigest
-build_outline(profile: StyleProfile, summary: ResearchSummary) -> Outline
-compose_draft(outline: Outline, profile: StyleProfile, materials: MaterialDigest) -> Draft
-measure_style(draft: Draft, profile: StyleProfile) -> StyleReport
-merge_sources(reports: Iterable[ResearchFinding]) -> ResearchSummary
-render_distribution(report: StyleReport, output: Path) -> None
+check_draft(draft_path: Path, profile_path: Path) -> StyleCheckReport
+fact_check(draft_path: Path, sources_path: Path) -> tuple[str, list[str]]
+# 下列函数为后续扩展参考
+# collect_materials(...)
+# build_outline(...)
+# compose_draft(...)
 ```
 - `StyleProfile.from_corpus`：统计平均句长、问句比例、亲密度词汇、视觉插图频率。
-- `measure_style`：返回 `style_match_score`、`question_ratio`、`second_person_ratio` 等指标；低于阈值需触发 `editing_pass`。
-- `collect_materials`：支持用户提供的 Markdown、纯文本、URL，自动去重并保留引用。
-- `compose_draft`：生成带段落注释的 Markdown，插入图片占位，未实际写作部分保留 `TODO` 标记供 writer 填充。
+- `check_draft`：产出 `style_match_score`、`question_ratio`、`second_person_ratio`、配图密度等指标。
+- `fact_check`：解析 Markdown 中的 `[@key]` 与外链，生成可追溯的事实核查日志。
 
 ## 运行命令
 - `python -m src.blog_pipeline.cli init-style --corpus /Users/wsy/Dropbox/example-blog-articles --output state/STYLE_PROFILE.md`
-- `python -m src.blog_pipeline.cli plan --topic "<主题>" --materials state/MATERIAL_AUDIT.md`
-- `python -m src.blog_pipeline.cli draft --outline state/POST_OUTLINE.md --output draft/post.md`
-- `python -m src.blog_pipeline.cli check --draft draft/post.md --profile state/STYLE_PROFILE.md`
+- `python -m src.blog_pipeline.cli check --draft draft/post.md --profile state/STYLE_PROFILE.md --sources state/SOURCES.md`
 - 调度脚本：`python tools/run_stage.py --stage draft --run`（结合 manifest 的命令字段）。
 
 ## 验证标准

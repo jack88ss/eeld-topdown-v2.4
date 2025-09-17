@@ -16,7 +16,7 @@
   - `LOG.md` — 关键操作、命令与守门条件变更。
 - `draft/`：`post.md` 为唯一交付格式，可复制到 Obsidian/Notion。
 - `figures/`：`figure_<id>.png` 与同名 `.meta.json` 描述图像位置、版权、段落编号。
-- `src/blog_pipeline/`（待实现）：风格分析、调研聚合、写作指挥与校验工具。
+- `src/blog_pipeline/`：风格分析与风格/事实校验工具（其余模块待扩展）。
 - `tools/run_stage.py`：调度/守卫脚本，读取 `state/STATUS.yaml` 判定可执行任务。
 
 ## 工作流阶段
@@ -44,24 +44,23 @@
 
 整个流程默认自驱：除非用户明确要求停顿或提供增量材料，代理需按状态机连续推进直至 `packaging_release` 完成。
 
-## 命令示例
+## 命令示例（当前可用）
 ```bash
 # 1. 分析示例博客的语气画像
 python -m src.blog_pipeline.cli init-style \
   --corpus /Users/wsy/Dropbox/example-blog-articles \
   --output state/STYLE_PROFILE.md
 
-# 2. （预留）素材整理、调研、草稿生成命令
-# TODO: material / research / outline / draft 子命令将在后续版本补全
-
-# 3. 校验风格与事实链接
+# 2. 校验草稿的风格与事实引用
 python -m src.blog_pipeline.cli check --draft draft/post.md \
   --profile state/STYLE_PROFILE.md --sources state/SOURCES.md
 
-# 4. 查看可执行任务
-python tools/run_stage.py            # 列出 ready 状态
-python tools/run_stage.py --stage draft --run  # 触发 writer 任务（需 manifest 中配置 command）
+# 3. 查看 ready 任务
+python tools/run_stage.py
+python tools/run_stage.py --stage draft --run  # 若 task.command 已配置
 ```
+
+> 说明：`material` / `research` / `outline` / `draft` 等子命令尚在开发规划中，目前由相应代理直接编辑 `state/` 文档完成业务逻辑，再通过 `check` 命令统一校验。
 
 ## 守门条件
 - **风格匹配**：`style_match_score ≥ 0.85`，问号占比 ≥ 3%，第二人称频率 ≥ 8 次/篇。

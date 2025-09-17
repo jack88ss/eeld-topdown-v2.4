@@ -21,34 +21,22 @@
 
 代理之间通过 `state/LOG.md` 留痕，保证 Codex 与 Claude 互相接力时拥有完整上下文。
 
-## 核心模块（计划实现）
+## 核心模块
 
-### `src/blog_pipeline/style.py`
-- 读取样例目录 `/Users/wsy/Dropbox/example-blog-articles/`。
-- 统计平均段落长度、问句/第二人称比例、比喻词、图像密度。
-- 输出 `state/STYLE_PROFILE.md` 并返回结构化 profile。
+### 已实现
 
-### `src/blog_pipeline/research.py`
-- 聚合 `state/MATERIAL_AUDIT.md` 中的素材与外部搜索结果。
-- 生成 `state/RESEARCH_SUMMARY.md` 表格（官方/媒体/用户/数据分类），同步引用到 `state/SOURCES.md`。
-- 在用户禁止调研时，记录“仅使用提供材料”。
+- `src/blog_pipeline/style.py` — 扫描示例文章目录（默认 `/Users/wsy/Dropbox/example-blog-articles/`），统计句长、段落长度、问句/二人称频率与配图密度，写出结构化 `StyleProfile` 与 `state/STYLE_PROFILE.md`。
+- `src/blog_pipeline/text_utils.py` — 提供段落/句子分割、指标分析与关键词提取函数，供风格提炼与校验复用。
+- `src/blog_pipeline/check.py` — 依据 `StyleProfile` 计算 `style_match_score` 等指标，生成 `results/style_check.json`；同时扫描 Markdown 草稿的 `[@key]` 引用与外链，形成 `results/fact_check.log`。
+- `src/blog_pipeline/cli.py` — 暴露 `init-style` 与 `check` 子命令，方便在 orchestrator 或 shell 中批量调用。
 
-### `src/blog_pipeline/outline.py`
-- 根据 profile + summary 生成 `Outline` 数据结构，包含模块顺序、段落要点、所需图像。
-- 写入 `state/POST_OUTLINE.md`，支持记录定制模块。
+### 规划中
 
-### `src/blog_pipeline/drafter.py`
-- 将 Outline 转换为 Markdown 草稿模版，在每个段落注入语气提醒。
-- 插入图片占位（`![[assets/...]]`）并预留 `.meta.json` TODO。
-
-### `src/blog_pipeline/editor.py`
-- 计算草稿与 profile 的余弦相似度、设问密度、第二人称频率。
-- 汇总事实句并验证是否存在 `[@ref]` 或材料链接。
-- 产出 `StyleReport` 与 `FactReport`，写入 `results/`。
-
-### `src/blog_pipeline/cli.py`
-- 提供 `init-style`、`material`、`research`、`outline`、`draft`、`check`、`package` 子命令，供 orchestrator 或用户调用。
-- 支持 `--dry-run` 与 `--use-provided-only` 等开关，满足“仅用用户材料”场景。
+- `src/blog_pipeline/research.py` — 归并 `state/MATERIAL_AUDIT.md` 与外部检索结果，自动刷新 `state/RESEARCH_SUMMARY.md`、`state/SOURCES.md`。
+- `src/blog_pipeline/outline.py` — 将风格画像与事实摘要转化为段落大纲，写入 `state/POST_OUTLINE.md`。
+- `src/blog_pipeline/drafter.py` — 基于大纲输出初稿模板和图片占位。
+- `src/blog_pipeline/editor.py` — 拓展风格匹配算法（如向量化），并结合事实检查返回可执行建议。
+- CLI 其他子命令（`material` / `research` / `outline` / `draft` / `package`）将在上述模块落地后补充，以便全流程脚本化。
 
 ## 改造与差异
 1. **输出重构**：弃用 Typst/PDF/Word，仅保留 Markdown + 图像元数据。
@@ -68,10 +56,10 @@
 - 迭代直到 `packaging_release` 输出最终 Markdown。
 
 ### 手动模式（当前）
-1. `python -m src.blog_pipeline.cli init-style ...`
-2. 更新 `state/MATERIAL_AUDIT.md`，运行 `tools/run_stage.py` 查看下一任务。
-3. 按阶段执行 `research` / `outline` / `draft` / `check` / `package`。
-4. 每次命令结束后在 `state/STATUS.yaml` 与 `state/LOG.md` 更新状态。
+1. 运行 `python -m src.blog_pipeline.cli init-style ...` 生成或刷新 `state/STYLE_PROFILE.md`。
+2. 由各角色直接编辑 `state/MATERIAL_AUDIT.md`、`state/RESEARCH_SUMMARY.md`、`state/POST_OUTLINE.md`、`state/POST.md` 等文件，并同步 `state/STATUS.yaml`、`state/LOG.md`。
+3. 写作阶段结束后执行 `python -m src.blog_pipeline.cli check ...` 产出风格/事实报告，满足守门条件后进入发布。
+4. 使用 `python tools/run_stage.py` 观察 ready 任务或触发 manifest 中预配置命令。
 
 ## 未来增强
 - 训练风格分类器，提高相似度评估可信度。

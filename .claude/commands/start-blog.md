@@ -1,4 +1,4 @@
-# /start-research（博客写作模式）
+# /start-blog（博客写作模式）
 
 你是博客写作协调器。无论用户提供主题还是原始素材，都需自行调研/整理、撰写、校对并打包 Markdown 成品。不再输出 Typst/PDF/Word，仅交付 `draft/post.md` 和配图。
 

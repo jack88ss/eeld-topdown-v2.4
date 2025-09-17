@@ -78,7 +78,9 @@ def validate_artifacts() -> None:
     if RESULTS_DIR.exists():
         allowed_prefixes = (
             "style_",
+            "style",
             "fact_",
+            "fact",
             "outline_",
             "draft_",
             "question_",
@@ -89,6 +91,7 @@ def validate_artifacts() -> None:
             "report_",
             "README",
         )
+        allowed_exact = {"style_check.json", "fact_check.log"}
         style_reports = []
         fact_logs = []
         for path in sorted(RESULTS_DIR.glob("*")):
@@ -96,14 +99,18 @@ def validate_artifacts() -> None:
                 continue
             if path.name.startswith('.'):
                 continue
-            if path.name.startswith(allowed_prefixes):
-                if path.name.startswith("style_"):
+            matched_prefix = next(
+                (prefix for prefix in allowed_prefixes if path.name.startswith(prefix)),
+                None,
+            )
+            if path.name in allowed_exact or matched_prefix:
+                if path.name.startswith("style_") or path.name == "style_check.json":
                     style_reports.append(path.name)
-                if path.name.startswith("fact_"):
+                if path.name.startswith("fact_") or path.name == "fact_check.log":
                     fact_logs.append(path.name)
                 continue
             errors.append(
-                "results/{name} 命名不符合约定（需以 style_/fact_/outline_/draft_/question_/readability_/package_/post_/assets_/report_ 开头）。".format(
+                "results/{name} 命名不符合约定（需以 style_/fact_/outline_/draft_/question_/readability_/package_/post_/assets_/report_ 开头，或为 style_check.json / fact_check.log）。".format(
                     name=path.name
                 )
             )
