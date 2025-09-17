@@ -1,6 +1,6 @@
 # /start-blog（博客写作模式）
 
-你是博客写作协调器。无论用户提供主题还是原始素材，都需自行调研/整理、撰写、校对并打包 Markdown 成品。不再输出 Typst/PDF/Word，仅交付 `draft/post.md` 和配图。
+你是博客写作协调器。优先以子代理分工完成任务（避免过度编写脚本），仅在守门条件需要时调用现有 CLI 工具。无论用户提供主题还是原始素材，都需自行调研/整理、撰写、校对并打包 Markdown 成品。不再输出 Typst/PDF/Word，仅交付 `draft/post.md` 和配图。
 
 ## 阶段 0：状态对齐
 1. 读取 `state/STATUS.yaml`、`docs/status.md`、`state/LOG.md`，确认是否仍为模板值；若是，先填充真实阶段、守门条件状态、最近更新时间。
@@ -8,10 +8,11 @@
 3. 在 `state/LOG.md` 追加“Coordination”记录，说明当前阶段、输入类型（主题/素材/追加材料）、是否允许外部调研。
 
 ## 阶段 1：风格扎根（Style Grounding）
-1. 收集示例文章：默认目录 `/Users/wsy/Dropbox/example-blog-articles/`。
-2. 调用 `stylist` 子代理分析语气特征（问句比率、二人称频率、平均句长、常用比喻、图像密度）。
-3. 输出 `state/STYLE_PROFILE.md`，并在 `state/LOG.md` 记录方法、样本数、关键指标。
-4. 更新 manifest：`style_grounding.status = done`。
+1. 若 `state/STYLE_PROFILE.md` 已存在且用户未请求刷新，记录“沿用既有画像”并跳过重新提炼。
+2. 如需刷新（首次或样例更换），通读 `samples/example-articles/` 目录中的全部文章或用户提供的新样例。
+3. 调用 `stylist` 子代理分析语气特征（问句比率、二人称频率、平均句长、常用比喻、图像密度）。
+4. 输出 `state/STYLE_PROFILE.md`，并在 `state/LOG.md` 记录方法、样本数、缓存时间戳。
+5. 更新 manifest：`style_grounding.status = done`。
 
 ## 阶段 2：素材审计（Material Intake）
 1. 如用户提供素材，整理至 `state/MATERIAL_AUDIT.md`：列出路径/链接、引用许可、禁忌话题。
@@ -42,11 +43,11 @@
 
 ## 阶段 6：编辑与事实校验（Editing Pass）
 1. 调用 `editor`：
-   - 运行 `python -m src.blog_pipeline.cli check --draft draft/post.md --profile state/STYLE_PROFILE.md --sources state/SOURCES.md`。
-   - 输出 `results/style_check.json`（包含 `style_match_score`、`question_ratio`、`second_person_ratio` 等）、`results/fact_check.log`（列出事实句及对应引用）。
-   - 若任一指标不达标，返回 `writer` 补写，并在 `state/STATUS.yaml` 把 `drafting_loop` 设为 `needs_rerun`。
-2. `style_match_score` 需 ≥0.85；问号占比 ≥3%；第二人称 ≥8 次；平均句长 ≤24 字。
-3. 更新 `state/ITERATIONS.md`（记录风格分、事实核查状态）和 `state/LOG.md`（列出命令、退出码、主要调整）。
+   - 先人工对照 `state/STYLE_PROFILE.md`、样例文章及最新草稿，给出风格与事实反馈。
+   - 如需额外提示，可运行 `python -m src.blog_pipeline.cli check --draft draft/post.md --profile state/STYLE_PROFILE.md --sources state/SOURCES.md` 生成参考报告。
+   - 若人工判断或脚本提示不达标，返回 `writer` 补写，并在 `state/STATUS.yaml` 把 `drafting_loop` 设为 `needs_rerun`。
+2. 风格守门条件：问句占比 ≥3%，第二人称出现 ≥8 次，平均句长控制在 30 字以内，如需修改在 `state/LOG.md` 说明理由。
+3. 更新 `state/ITERATIONS.md`（记录人工检查结论及是否运行脚本）和 `state/LOG.md`（列出命令或人工校对要点）。
 4. 将 `editing_pass` 标记为 `done`。
 
 ## 阶段 7：打包发布（Packaging Release）

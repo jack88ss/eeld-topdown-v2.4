@@ -13,14 +13,15 @@ tools: Read, Write, Bash
 - `state/LOG.md` 追加审校日志：命令、退出码、发现的问题、调整建议。
 
 **流程**
-1. 运行风格检查脚本：
+1. 先人工阅读草稿，参照 `state/STYLE_PROFILE.md` 与 `samples/example-articles/` 判断语气、节奏、设问密度、第二人称使用情况。
+2. 需要额外验证时，可运行（可选）脚本：
    ```bash
    python -m src.blog_pipeline.cli check \
      --draft draft/post.md \
      --profile state/STYLE_PROFILE.md \
      --sources state/SOURCES.md
    ```
-2. 若 `style_match_score < 0.85`、`question_ratio < 0.03`、`second_person_ratio < 0.08`、或 `avg_sentence_length > 24`，将 `drafting_loop` 设为 `needs_rerun` 并在日志中写明整改建议。
+3. 若人工或脚本提示 `style_match_score < 0.85`、`question_ratio < 0.03`、`second_person_ratio < 0.08`、或 `avg_sentence_length` 显著超标，将 `drafting_loop` 设为 `needs_rerun` 并在日志中写明整改建议。
 3. 审阅所有事实句，确认：
    - 存在对应 `[@key]`，且条目已在 `state/SOURCES.md`。
    - 链接可访问；若受限，注明访问时间与限制。

@@ -9,7 +9,7 @@
 - **tests/** — 覆盖现有模块（`style`、`check`、`text_utils`）的核心函数，新增模块时同步补测。
 
 ## 数据流
-1. **风格提炼**：`style.extract_profile(sample_paths)` → 写入 `state/STYLE_PROFILE.md`。
+1. **风格提炼**：默认复用 `state/STYLE_PROFILE.md` 缓存；如需刷新，由 stylist 阅读 `samples/example-articles/` 并人工更新。
 2. **素材审计**：coordinator 手动整理用户输入 → `state/MATERIAL_AUDIT.md`（未来可由脚本补充）。
 3. **资料整合**：researcher 手动或脚本化更新 `state/RESEARCH_SUMMARY.md`、`state/SOURCES.md`。
 4. **大纲生成**：outliner 在 `state/POST_OUTLINE.md` 维护模块顺序与要点。
@@ -27,9 +27,8 @@ fact_check(draft_path: Path, sources_path: Path) -> tuple[str, list[str]]
 # build_outline(...)
 # compose_draft(...)
 ```
-- `StyleProfile.from_corpus`：统计平均句长、问句比例、亲密度词汇、视觉插图频率。
-- `check_draft`：产出 `style_match_score`、`question_ratio`、`second_person_ratio`、配图密度等指标。
-- `fact_check`：解析 Markdown 中的 `[@key]` 与外链，生成可追溯的事实核查日志。
+- `StyleProfile.from_corpus`（可选）用作人工总结时的辅助参考。
+- `check_draft`、`fact_check`：提供自动提醒功能，但不替代编辑代理的人工审读。
 
 ## 运行命令
 - `python -m src.blog_pipeline.cli init-style --corpus /Users/wsy/Dropbox/example-blog-articles --output state/STYLE_PROFILE.md`

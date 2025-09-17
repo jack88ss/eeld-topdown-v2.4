@@ -1,13 +1,12 @@
-"""Extract style metrics from sample articles and write STYLE_PROFILE.md."""
+"""Optional helper to aggregate style metrics; default workflow relies on agents."""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 import json
 from pathlib import Path
 from statistics import mean
 from typing import Iterable, List, Sequence
-
-import yaml
 
 from .text_utils import TextMetrics, analyse_text, split_paragraphs, top_keywords
 
@@ -123,7 +122,7 @@ def _aggregate_metrics(stats: CorpusStats) -> StyleProfile:
     )
 
     min_question_ratio = max(0.03, question_ratio * 0.8 if question_ratio else 0.03)
-    max_sentence_length = min(24.0, avg_sentence_length * 1.1 if avg_sentence_length else 24.0)
+    max_sentence_length = max(24.0, avg_sentence_length * 1.1 if avg_sentence_length else 24.0)
     min_second_person_count = max(8, int(total_second_person / max(stats.total_documents, 1) * 0.7))
 
     keywords = top_keywords([p for p in stats.paragraphs], top_n=12)
@@ -173,16 +172,28 @@ def extract_profile(corpus_paths: Sequence[Path]) -> StyleProfile:
 
 def write_style_profile(profile: StyleProfile, output_path: Path, corpus_paths: Sequence[Path]) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    front_matter = yaml.safe_dump({"profile": profile.to_dict()}, allow_unicode=True, sort_keys=False)
     corpus_list = "\n".join(f"- {path}" for path in corpus_paths)
-    paragraph_block = "\n\n".join(f"> {para.strip()}" for para in profile.representative_paragraphs)
-    keywords_line = ", ".join(profile.keywords[:10])
+    paragraph_block = "\n\n".join(f"> {para.strip()}" for para in profile.representative_paragraphs) or "（示例文本不足，待补充）"
+    keywords_line = ", ".join(profile.keywords[:10]) or "N/A"
+    timestamp = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+
+    profile_summary = profile.to_dict()
+    front_matter_lines = ["profile:"]
+    for key, value in profile_summary.items():
+        if isinstance(value, list):
+            joined = ", ".join(map(str, value))
+            front_matter_lines.append(f"  {key}: {joined}")
+        else:
+            front_matter_lines.append(f"  {key}: {value}")
+    front_matter_lines.append(f"  cached_at: {timestamp}")
+    front_matter = "\n".join(front_matter_lines)
 
     body = f"""---
-{front_matter}---
+{front_matter}
+---
 # 风格画像
 
-> 自动生成于示例文章：
+> 缓存自示例文章：
 {corpus_list}
 
 ## 语气概览
@@ -193,11 +204,11 @@ def write_style_profile(profile: StyleProfile, output_path: Path, corpus_paths: 
 - 平均配图：每篇 {profile.avg_figures_per_article:.1f} 张，段落配图密度 {profile.figure_density*100:.1f}%
 
 ## 关键词与表达
-- 高频表达：{keywords_line or 'N/A'}
+- 高频表达：{keywords_line}
 - 常用二人称词：{', '.join(SECOND_PERSON_TOKENS)}
 
 ## 代表段落
-{paragraph_block or '（示例文本不足，待补充）'}
+{paragraph_block}
 
 ## 阈值建议
 | 指标 | 目标 | 阈值 |
@@ -207,10 +218,14 @@ def write_style_profile(profile: StyleProfile, output_path: Path, corpus_paths: 
 | 第二人称次数 | 每篇 {profile.min_second_person_count+2} 次左右 | ≥ {profile.min_second_person_count} 次 |
 | 配图密度 | {profile.figure_density*100:.1f}% | ≥ {profile.figure_density*100:.1f}% |
 
-> 若未来样本更新，请重新运行 `python -m src.blog_pipeline.cli init-style` 以刷新本文件。
+> 仅在替换新的示例文章时，才需要重新运行 `python -m src.blog_pipeline.cli init-style` 以刷新缓存。
 """
     output_path.write_text(body, encoding="utf-8")
 
-    # 另存结构化 profile 方便程序读取（旁路缓存）
     cache_path = output_path.with_suffix(".json")
-    cache_path.write_text(json.dumps(profile.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+    cache_payload = {
+        "cached_at": timestamp,
+        "corpus": [str(path) for path in corpus_paths],
+        "profile": profile.to_dict(),
+    }
+    cache_path.write_text(json.dumps(cache_payload, ensure_ascii=False, indent=2), encoding="utf-8")

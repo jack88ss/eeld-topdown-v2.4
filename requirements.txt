@@ -1,7 +1,0 @@
-pandas
-numpy
-matplotlib
-jinja2
-PyYAML
-fonttools
-beautifulsoup4

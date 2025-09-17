@@ -14,7 +14,7 @@ tools: Read, Write, Bash
    - 对每个任务调用对应代理，传入必要文件路径与目标。
    - 若多个任务可并行（如补充调研与图片收集），同时启动并在日志中注明。
 3. **守门条件确认**：
-   - 进入编辑前确认 `state/STYLE_PROFILE.md` 已填充并在日志备案。
+   - 进入编辑前确认 `state/STYLE_PROFILE.md` 已填充（默认基于 `samples/example-articles/` 的人工总结），并在日志备案是“沿用缓存”还是“刷新样例”。
    - 进入发布前确认 `results/style_check.json` ≥0.85、`results/fact_check.log` 完整、图片元数据齐全。
 4. **回滚策略**：
    - 任务失败时，将其设为 `blocked`，记录原因、建议、下一步负责人。

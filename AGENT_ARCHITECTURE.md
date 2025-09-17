@@ -7,7 +7,7 @@
 ## 代理矩阵与状态机
 
 - 状态机：`state/STATUS.yaml` 描述阶段（plan → research → outline → draft → review → publish）、任务依赖与守门条件（风格分 ≥0.85、事实核查完成、图像就位）。
-- `/start-blog`（待实现）或 `python tools/run_stage.py` 将读取 manifest，调度下列子代理：
+- `/start-blog`（Claude 指令）或 `python tools/run_stage.py` 将读取 manifest，调度下列子代理：
 
 | 阶段 | 子代理 | 主要职责 |
 |------|--------|----------|
@@ -25,7 +25,7 @@
 
 ### 已实现
 
-- `src/blog_pipeline/style.py` — 扫描示例文章目录（默认 `/Users/wsy/Dropbox/example-blog-articles/`），统计句长、段落长度、问句/二人称频率与配图密度，写出结构化 `StyleProfile` 与 `state/STYLE_PROFILE.md`。
+- `src/blog_pipeline/style.py` — 扫描本仓库 `samples/example-articles/` 目录，统计句长、段落长度、问句/二人称频率与配图密度，写出结构化 `StyleProfile` 与 `state/STYLE_PROFILE.md`，同时生成缓存供后续直接复用（可选工具）。
 - `src/blog_pipeline/text_utils.py` — 提供段落/句子分割、指标分析与关键词提取函数，供风格提炼与校验复用。
 - `src/blog_pipeline/check.py` — 依据 `StyleProfile` 计算 `style_match_score` 等指标，生成 `results/style_check.json`；同时扫描 Markdown 草稿的 `[@key]` 引用与外链，形成 `results/fact_check.log`。
 - `src/blog_pipeline/cli.py` — 暴露 `init-style` 与 `check` 子命令，方便在 orchestrator 或 shell 中批量调用。

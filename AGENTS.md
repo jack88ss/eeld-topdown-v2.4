@@ -1,6 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
+- 推荐入口：`/start-blog <主题>`（Claude Code 或镜像 orchestrator），自动调度 stylist → publisher；CLI 工具有辅助性质，仅在需要时调用。
 - `src/blog_pipeline/`：已实现风格分析 (`style.py`)、草稿校验 (`check.py`)、文本指标工具 (`text_utils.py`)，其余模块（调研、提纲、草稿生成）待扩展。
 - `state/`：多代理共享的事实源。
   - `STATUS.yaml` — 阶段与任务依赖（plan → research → outline → draft → review → publish）。
@@ -15,15 +16,16 @@
 - `tools/run_stage.py`：读取 manifest，校验命名守卫，列出 ready 任务或触发命令。
 
 ## Build, Test, Development Commands
-- 风格提炼：`python -m src.blog_pipeline.cli init-style --corpus /Users/wsy/Dropbox/example-blog-articles --output state/STYLE_PROFILE.md`
-- 风格/事实校验：`python -m src.blog_pipeline.cli check --draft draft/post.md --profile state/STYLE_PROFILE.md --sources state/SOURCES.md`
-- 其他阶段（素材审计、调研、提纲、撰写）暂由对应代理直接编辑 `state/` 文档完成，后续会增补 CLI 子命令以统一调度。
-- 调度守卫：`python tools/run_stage.py [--stage <name>] [--run]`
-- 测试占位：`pytest -q`（建成后需覆盖 style、research、outline、draft、editor 模块）。
+- 首选入口：`/start-blog <主题>`（Claude Code）或镜像 orchestrator，自动调度 stylist → publisher。
+- 手工流程：直接编辑 `state/` 文档并在 `state/LOG.md` 记录操作；必要时使用 `tools/run_stage.py` 查看依赖状态。
+- 备用脚本（仅在需要缓存或自动校验时使用）：
+  - `python -m src.blog_pipeline.cli init-style --corpus samples/example-articles --output state/STYLE_PROFILE.md`
+  - `python -m src.blog_pipeline.cli check --draft draft/post.md --profile state/STYLE_PROFILE.md --sources state/SOURCES.md`
+- 测试命令暂无强制要求；如扩展脚本，请自行添加 `pytest` 并记录结果。
 
 ## Orchestration & Review Workflow
 - 每阶段结束更新 `state/STATUS.yaml`、`docs/status.md`、`state/LOG.md`。记录平台（Claude/Codex）、命令及退出码。
-- `style_grounding` 任务完成前，不得进入调研；`style_match_score` 是编辑阶段守门条件。
+- `style_grounding` 任务完成前，不得进入调研；若 `state/STYLE_PROFILE.json` 已存在且未过期，stylist 应记录沿用并直接完成任务；`style_match_score` 是编辑阶段守门条件。
 - 当用户声明“仅用提供材料”时，在 `state/MATERIAL_AUDIT.md` 标记 `覆盖度: full`、`补充调研计划: 跳过`，并在 `state/LOG.md` 记录理由。
 - 图像必须在首次提及段落附近插入 `![[assets/...]]`，并有 `.meta.json` 说明。发布前由 `publisher` 复核元数据（来源、版权、用途）。
 - 编辑阶段需生成 `results/style_check.json` 与 `results/fact_check.log` 并写入 `state/ITERATIONS.md`；缺失事实引用必须补齐或删除对应内容。

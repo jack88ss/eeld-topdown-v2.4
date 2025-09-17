@@ -2,6 +2,8 @@
 
 这个仓库由原先的学术论文流水线改造而来，现在专注于**图文并茂的长篇博客**。流程模仿 `/Users/wsy/Downloads/Get 笔记写作助手.srt` 中介绍的多 Agent 协作：风格师锁定语气、调研员搜集事实、策划者搭建段落蓝图、写作者落地草稿、编辑批注并二次打磨，最后由发布者打包 Markdown 与图片素材。
 
+> 推荐通过 `/start-blog`（或等效 orchestrator）串联各子代理，CLI 脚本仅在需要刷新风格画像或执行终检时补充使用。
+
 > 核心产物为 `draft/post.md` 与 `figures/` 下的配图及 `.meta.json` 说明；不再生成 Typst / PDF / Word。
 
 ## 目录速览
@@ -16,13 +18,14 @@
   - `LOG.md` — 关键操作、命令与守门条件变更。
 - `draft/`：`post.md` 为唯一交付格式，可复制到 Obsidian/Notion。
 - `figures/`：`figure_<id>.png` 与同名 `.meta.json` 描述图像位置、版权、段落编号。
-- `src/blog_pipeline/`：风格分析与风格/事实校验工具（其余模块待扩展）。
+- `samples/example-articles/`：内置 13 篇风格样例，供 stylist/ writer 参考。
+- `src/blog_pipeline/`：保留的工具脚本（可选），默认优先依赖多代理协作。
 - `tools/run_stage.py`：调度/守卫脚本，读取 `state/STATUS.yaml` 判定可执行任务。
 
 ## 工作流阶段
 1. **Style Grounding**（stylist）
-   - 扫描 `/Users/wsy/Dropbox/example-blog-articles/` 样例。
-   - 输出 `state/STYLE_PROFILE.md`（句长、设问密度、口语化指标等）。
+   - 首选复用 `state/STYLE_PROFILE.md` / `.json` 缓存；
+   - 仅在用户替换示例文章时才触发重新提炼。
 2. **Material Intake**（coordinator）
    - 读取用户指定主题/材料。
    - 更新 `state/MATERIAL_AUDIT.md`、`state/PUBLISH_PLAN.md`，说明是否需要外部调研。
@@ -46,21 +49,20 @@
 
 ## 命令示例（当前可用）
 ```bash
-# 1. 分析示例博客的语气画像
-python -m src.blog_pipeline.cli init-style \
-  --corpus /Users/wsy/Dropbox/example-blog-articles \
-  --output state/STYLE_PROFILE.md
+# 1. 启动 orchestrator（推荐）
+/start-blog <主题> [--materials ...]
 
-# 2. 校验草稿的风格与事实引用
-python -m src.blog_pipeline.cli check --draft draft/post.md \
-  --profile state/STYLE_PROFILE.md --sources state/SOURCES.md
+# 2. （可选）若示例文章发生变更，可手动运行缓存脚本
+python -m src.blog_pipeline.cli init-style --corpus samples/example-articles --output state/STYLE_PROFILE.md
 
-# 3. 查看 ready 任务
+# 3. （可选）在完成草稿后使用脚本做额外校验
+python -m src.blog_pipeline.cli check --draft draft/post.md --profile state/STYLE_PROFILE.md --sources state/SOURCES.md
+
+# 4. 查看 ready 任务（调度守卫）
 python tools/run_stage.py
-python tools/run_stage.py --stage draft --run  # 若 task.command 已配置
 ```
 
-> 说明：`material` / `research` / `outline` / `draft` 等子命令尚在开发规划中，目前由相应代理直接编辑 `state/` 文档完成业务逻辑，再通过 `check` 命令统一校验。
+> 说明：默认依靠多代理阅读样例和草稿完成风格提炼与事实审校；以上脚本仅作为必要时的辅助工具。
 
 ## 守门条件
 - **风格匹配**：`style_match_score ≥ 0.85`，问号占比 ≥ 3%，第二人称频率 ≥ 8 次/篇。
@@ -93,3 +95,7 @@ python tools/run_stage.py --stage draft --run  # 若 task.command 已配置
 4. 集成图像检索/生成模块，自动填充缺失配图并更新 `.meta.json`。
 
 欢迎继续扩展，使其成为“主题→Markdown 博客”的端到端写作利器。
+## 样例文章缓存
+- 样例文本位于 `samples/example-articles/`，作为个人风格基准。
+- `state/STYLE_PROFILE.md` 保存最近一次的人工总结；stylist 默认沿用该缓存，仅在样例更新时重写。
+- 若用户提供额外范例，可先放入该目录再触发 `/start-blog`，或直接在 `state/STYLE_PROFILE.md` 追加备注。

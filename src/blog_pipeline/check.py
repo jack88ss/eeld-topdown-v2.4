@@ -1,14 +1,11 @@
-"""Style checking and fact-check scaffolding for blog drafts."""
+"""Optional style/fact check scaffolding; manual编辑 remains primary."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 import json
 import re
 from pathlib import Path
-from statistics import mean
 from typing import Dict, List, Tuple
-
-import yaml
 
 from .style import StyleProfile
 from .text_utils import TextMetrics, analyse_text, split_paragraphs
@@ -48,19 +45,36 @@ class StyleCheckReport:
 
 def load_profile(path: Path) -> StyleProfile:
     json_cache = path.with_suffix(".json")
-    data: dict
     if json_cache.exists():
-        data = json.loads(json_cache.read_text(encoding="utf-8"))
-    else:
-        text = path.read_text(encoding="utf-8")
-        if not text.startswith("---"):
-            raise ValueError("STYLE_PROFILE.md 缺少 front matter，请先运行 init-style")
-        _, front, _ = text.split("---", 2)
-        raw = yaml.safe_load(front)
-        if not isinstance(raw, dict) or "profile" not in raw:
-            raise ValueError("STYLE_PROFILE.md front matter 无 profile 键")
-        data = raw["profile"]
-    return StyleProfile.from_dict(data)
+        payload = json.loads(json_cache.read_text(encoding="utf-8"))
+        data = payload.get("profile", payload)
+        return StyleProfile.from_dict(data)
+
+    text = path.read_text(encoding="utf-8") if path.exists() else ""
+    if "profile:" in text:
+        extracted: Dict[str, float] = {}
+        for line in text.splitlines():
+            if line.startswith("  ") and ":" in line:
+                key, value = line.strip().split(":", 1)
+                key = key.strip()
+                value = value.strip()
+                if not value:
+                    continue
+                if key in {"keywords", "representative_paragraphs", "second_person_tokens"}:
+                    extracted[key] = [item.strip() for item in value.split(",") if item.strip()]
+                else:
+                    try:
+                        extracted[key] = float(value)
+                    except ValueError:
+                        try:
+                            extracted[key] = int(value)
+                        except ValueError:
+                            extracted[key] = value
+        if extracted:
+            return StyleProfile.from_dict(extracted)  # type: ignore[arg-type]
+    raise FileNotFoundError(
+        "Style profile cache 未找到，请运行 `python -m src.blog_pipeline.cli init-style` 生成缓存。"
+    )
 
 
 def _score(metric: float, target: float, mode: str) -> float:

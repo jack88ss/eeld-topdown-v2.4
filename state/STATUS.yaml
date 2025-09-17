@@ -13,6 +13,7 @@ branches:
         depends_on: []
         outputs:
           - state/STYLE_PROFILE.md
+          - state/STYLE_PROFILE.json
       - id: material_intake
         stage: plan
         assignee: coordinator
