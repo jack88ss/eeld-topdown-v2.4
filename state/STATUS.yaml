@@ -1,0 +1,76 @@
+# Global workflow manifest for blog-writing pipeline
+# 在推进阶段前确认风格评估≥0.85、事实核查通过，并将检查记录写入 state/LOG.md。
+current_stage: plan        # plan | research | outline | draft | review | publish | done
+branches:
+  main:
+    description: "Primary long-form blog workflow"
+    status: in_progress     # in_progress | blocked | done
+    tasks:
+      - id: style_grounding
+        stage: plan
+        assignee: stylist
+        status: todo
+        depends_on: []
+        outputs:
+          - state/STYLE_PROFILE.md
+      - id: material_intake
+        stage: plan
+        assignee: coordinator
+        status: todo
+        depends_on:
+          - style_grounding
+        outputs:
+          - state/MATERIAL_AUDIT.md
+          - state/PUBLISH_PLAN.md
+      - id: research_deepdive
+        stage: research
+        assignee: researcher
+        status: todo
+        depends_on:
+          - material_intake
+        outputs:
+          - state/RESEARCH_SUMMARY.md
+          - state/SOURCES.md
+      - id: outline_blueprint
+        stage: outline
+        assignee: outliner
+        status: blocked
+        depends_on:
+          - research_deepdive
+        outputs:
+          - state/POST_OUTLINE.md
+      - id: drafting_loop
+        stage: draft
+        assignee: writer
+        status: blocked
+        depends_on:
+          - outline_blueprint
+        outputs:
+          - state/POST.md
+          - draft/post.md
+      - id: editing_pass
+        stage: review
+        assignee: editor
+        status: blocked
+        depends_on:
+          - drafting_loop
+        guards:
+          style_match: ">=0.85"
+          fact_checks: "complete"
+        outputs:
+          - state/LOG.md
+          - state/ITERATIONS.md
+          - results/style_check.json
+          - results/fact_check.log
+      - id: packaging_release
+        stage: publish
+        assignee: publisher
+        status: blocked
+        depends_on:
+          - editing_pass
+        outputs:
+          - draft/post.md
+          - figures/
+          - README.md
+pending_notifications: []
+last_updated: 2025-09-17T08:30:00Z
