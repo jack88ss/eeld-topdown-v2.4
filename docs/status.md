@@ -1,6 +1,6 @@
 # Blog Pipeline Dashboard (Template)
 
-更新此文件以摘要当前阶段、分支、任务与守门条件。保持与 `state/STATUS.yaml` 一致，并在表格中写入真实的风格匹配分数、事实核查状态、草稿迭代次数与图片检查结果。
+更新此文件以概览阶段、任务状态与守门条件。需与 `state/STATUS.yaml`、`state/LOG.md` 一致，并写明最近更新时间。
 
 ## 当前阶段
 - `state/STATUS.yaml` → current_stage: plan（更新时请写入实际阶段与时间戳）
@@ -8,18 +8,18 @@
 ## 任务摘要
 | 任务ID | 阶段 | 状态 | 负责人 | 备注 |
 |--------|------|------|--------|------|
-| style_grounding | plan | todo | stylist | 解析示例文章形成 `state/STYLE_PROFILE.md` |
-| material_intake | plan | todo | coordinator | 编写 `state/MATERIAL_AUDIT.md`、`state/PUBLISH_PLAN.md` |
-| research_deepdive | research | todo | researcher | 汇总检索与事实来源 |
-| outline_blueprint | outline | blocked | outliner | 需研究完成并锁定关键信息 |
-| drafting_loop | draft | blocked | writer | 草稿需通过风格与事实检查 |
-| editing_pass | review | blocked | editor | 风格匹配 ≥0.85 且事实核查完成 |
-| packaging_release | publish | blocked | publisher | 输出最终 Markdown 与图像素材 |
+| style_grounding | plan | todo | stylist | 缓存 `state/STYLE_PROFILE.md`，样例变更时更新 |
+| material_intake | plan | todo | coordinator | `state/MATERIAL_AUDIT.md`、`state/PUBLISH_PLAN.md` |
+| research_deepdive | research | todo | researcher | 汇总事实、补充 `state/SOURCES.md` |
+| outline_blueprint | outline | blocked | outliner | 待调研完成后输出段落蓝图 |
+| drafting_loop | draft | blocked | writer | 草稿 (`state/POST.md`/`draft/post.md`) |
+| editing_pass | review | blocked | editor | 审阅风格/事实/图像并在日志记录 |
+| packaging_release | publish | blocked | publisher | 核对 Markdown + assets + meta |
 
-## 守门条件
-- 风格匹配分数 ≥0.85（current: 请写入实际数字）
-- 事实核查：pending / complete（current: 请写入状态）
-- 草稿迭代次数：0（更新时填写）
-- 图文素材检查：pending（确认 `figures/*.png` + `.meta.json`）
+## 守门条件追踪
+- **风格审阅**：stylist / editor 是否在 `state/LOG.md` 留有签字（记录“沿用缓存/刷新样例”“风格反馈”）。
+- **事实审阅**：正文引用是否全部链接到 `state/SOURCES.md`；editor 是否在日志记录核查结论。
+- **图像检查**：`assets/` 与 `figures/*.meta.json` 是否成对存在；缺项由 publisher 在日志注明补交计划。
+- **迭代记录**：`state/ITERATIONS.md` 当前条目数与最新反馈。
 
-> 此文件用于人工状态汇报，可结合脚本自动生成。更新时请同步 `state/LOG.md` 记录风格评估、资料验证、发布打包等关键动作。
+> 建议在每次阶段变更后刷新本文件，并附上最近一次 `state/LOG.md` 条目的链接或摘要，方便跨平台追踪。

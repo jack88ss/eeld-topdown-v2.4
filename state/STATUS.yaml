@@ -1,5 +1,5 @@
 # Global workflow manifest for blog-writing pipeline
-# 在推进阶段前确认风格评估≥0.85、事实核查通过，并将检查记录写入 state/LOG.md。
+# 在推进阶段前确认风格、事实、图像检查均已在 state/LOG.md 留痕。
 current_stage: plan        # plan | research | outline | draft | review | publish | done
 branches:
   main:
@@ -13,7 +13,7 @@ branches:
         depends_on: []
         outputs:
           - state/STYLE_PROFILE.md
-          - state/STYLE_PROFILE.json
+          - state/LOG.md
       - id: material_intake
         stage: plan
         assignee: coordinator
@@ -56,13 +56,12 @@ branches:
         depends_on:
           - drafting_loop
         guards:
-          style_match: ">=0.85"
-          fact_checks: "complete"
+          style_review: "logged"
+          fact_review: "logged"
+          images_checked: "logged"
         outputs:
           - state/LOG.md
           - state/ITERATIONS.md
-          - results/style_check.json
-          - results/fact_check.log
       - id: packaging_release
         stage: publish
         assignee: publisher
@@ -71,7 +70,8 @@ branches:
           - editing_pass
         outputs:
           - draft/post.md
+          - assets/
           - figures/
-          - README.md
+          - docs/status.md
 pending_notifications: []
-last_updated: 2025-09-17T08:30:00Z
+last_updated: 2025-09-18T00:00:00Z

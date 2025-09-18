@@ -2,69 +2,50 @@
 
 ## 总览
 
-系统复用了原论文项目的自动化骨架，但将目标改为**长篇中文博客**。我们沿用 Claude Code / Codex 的多代理能力，实现“风格 → 资料 → 大纲 → 草稿 → 编辑 → 发布”的串并结合流程，并保证唯一产出是 `draft/post.md` 与配套图片。
+仓库以 `/start-blog` 为唯一入口：协调器读取 `state/STATUS.yaml`，根据依赖调度 stylist → coordinator → researcher → outliner → writer → editor → publisher。最终交付 Markdown (`draft/post.md`) 与图像资产（`assets/` + `figures/*.meta.json`）。
 
 ## 代理矩阵与状态机
 
-- 状态机：`state/STATUS.yaml` 描述阶段（plan → research → outline → draft → review → publish）、任务依赖与守门条件（风格分 ≥0.85、事实核查完成、图像就位）。
-- `/start-blog`（Claude 指令）或 `python tools/run_stage.py` 将读取 manifest，调度下列子代理：
+- `state/STATUS.yaml`：描述阶段（plan → research → outline → draft → review → publish）与守门条件。
+- `/start-blog` 将按下表调度子代理并在 `state/LOG.md` 留痕：
 
 | 阶段 | 子代理 | 主要职责 |
 |------|--------|----------|
-| Style Grounding | `stylist` | 分析示例文章，产出 `state/STYLE_PROFILE.md` 指标（句长、设问密度、二人称频率、图像节奏等）。 |
-| Material Intake | `coordinator` | 整理用户主题与材料，更新 `state/MATERIAL_AUDIT.md`、`state/PUBLISH_PLAN.md`，决定是否需要外部调研。 |
-| Research Deepdive | `researcher` | 组合用户素材与在线检索，输出 `state/RESEARCH_SUMMARY.md`、`state/SOURCES.md`，并标注引用可信度。 |
-| Outline Blueprint | `outliner` | 将风格画像与事实摘要转化为模块化段落大纲，维护 `state/POST_OUTLINE.md`。 |
-| Drafting Loop | `writer` | 按大纲撰写 `state/POST.md` 与 `draft/post.md`，插入 `![[assets/...]]` 图像，占位引用。 |
-| Editing Pass | `editor` | 执行风格/事实检查，生成 `results/style_check.json`、`results/fact_check.log`，更新 `state/ITERATIONS.md`。 |
-| Packaging Release | `publisher` | 审核 `.meta.json`、整理图像与 Markdown，宣告发布完成。 |
+| Style Grounding | stylist | 复用或更新 `state/STYLE_PROFILE.md`，总结语气、节奏与常见修辞。 |
+| Material Intake | coordinator | 梳理用户素材与限制，更新 `MATERIAL_AUDIT.md`、`PUBLISH_PLAN.md`。 |
+| Research Deepdive | researcher | 归纳事实、补充链接，更新 `RESEARCH_SUMMARY.md`、`SOURCES.md`（Markdown 链接）。 |
+| Outline Blueprint | outliner | 生成段落结构，指明每段所需事实/图片。 |
+| Drafting Loop | writer | 在 `POST.md`、`draft/post.md` 完成草稿并嵌入 `![[assets/...]]` 图像占位。 |
+| Editing Pass | editor | 人工审读风格与事实，记录反馈，必要时调用辅助脚本。 |
+| Packaging Release | publisher | 核对 Markdown、图像与 `.meta.json`，更新日志并宣布 ready。 |
 
-代理之间通过 `state/LOG.md` 留痕，保证 Codex 与 Claude 互相接力时拥有完整上下文。
+## 可选工具
 
-## 核心模块
+- `optional-tools/src/blog_pipeline/`：历史脚本，可辅助提炼风格或检查引用；默认流程不依赖。
+- `tools/run_stage.py`：列出 ready 任务或检查资产状态，不再强制校验 JSON 报告。
 
-### 已实现
+> 若调用脚本，请在 `state/LOG.md` 记录“命令 → 输出 → 是否采纳”，保持透明度。
 
-- `src/blog_pipeline/style.py` — 扫描本仓库 `samples/example-articles/` 目录，统计句长、段落长度、问句/二人称频率与配图密度，写出结构化 `StyleProfile` 与 `state/STYLE_PROFILE.md`，同时生成缓存供后续直接复用（可选工具）。
-- `src/blog_pipeline/text_utils.py` — 提供段落/句子分割、指标分析与关键词提取函数，供风格提炼与校验复用。
-- `src/blog_pipeline/check.py` — 依据 `StyleProfile` 计算 `style_match_score` 等指标，生成 `results/style_check.json`；同时扫描 Markdown 草稿的 `[@key]` 引用与外链，形成 `results/fact_check.log`。
-- `src/blog_pipeline/cli.py` — 暴露 `init-style` 与 `check` 子命令，方便在 orchestrator 或 shell 中批量调用。
+## 与样例协同
 
-### 规划中
+- 样例文章集中在 `samples/example-articles/`，摘要见 `samples/README.md`。
+- Stylist 默认沿用 `state/STYLE_PROFILE.md` 缓存；当样例更新或新增话题时，再总结并覆盖。
+- Writer/ editor 应在开写前阅读相关样例，必要时在 `state/VOICE_AND_STRUCTURE.md` 补充语句示例与禁忌。
 
-- `src/blog_pipeline/research.py` — 归并 `state/MATERIAL_AUDIT.md` 与外部检索结果，自动刷新 `state/RESEARCH_SUMMARY.md`、`state/SOURCES.md`。
-- `src/blog_pipeline/outline.py` — 将风格画像与事实摘要转化为段落大纲，写入 `state/POST_OUTLINE.md`。
-- `src/blog_pipeline/drafter.py` — 基于大纲输出初稿模板和图片占位。
-- `src/blog_pipeline/editor.py` — 拓展风格匹配算法（如向量化），并结合事实检查返回可执行建议。
-- CLI 其他子命令（`material` / `research` / `outline` / `draft` / `package`）将在上述模块落地后补充，以便全流程脚本化。
+## 手动运行要点
+1. 更新 `state/STATUS.yaml` 与 `docs/status.md`，确保 stage/依赖真实。
+2. 逐阶段编辑 `state/` 文档，并在 `state/LOG.md` 记录时间、平台、负责人、要点。
+3. 写作完成后，editor 在 `state/ITERATIONS.md` 标记反馈；publisher 核对 `assets/` 与 `figures/`，确认许可与说明完整。
+4. 若使用辅助脚本（例如 `optional-tools/src/blog_pipeline/cli.py`），请注明用途并手动审阅结果。
 
-## 改造与差异
-1. **输出重构**：弃用 Typst/PDF/Word，仅保留 Markdown + 图像元数据。
-2. **风格优先**：新增 `STYLE_PROFILE.md` 与风格评分守门条件，确保文章贴近作者语气。
-3. **事实检查日志**：`results/fact_check.log` 取代原先的统计验证文件。
-4. **任务命名更贴博客**：`state/STATUS.yaml` 中的任务改为 style/material/research/outline/draft/review/publish。
-5. **素材审计**：`state/MATERIAL_AUDIT.md` 替代数据审计，强调用户材料、版权与禁区。
-
-## 使用方式
-
-### 自动模式（待实现）
-```
-/start-blog <主题> [--materials <路径或URL列表>] [--no-research]
-```
-- 解析状态机 → 并发执行无依赖任务。
-- 根据材料密度决定是否触发 `researcher`。
-- 迭代直到 `packaging_release` 输出最终 Markdown。
-
-### 手动模式（当前）
-1. 运行 `python -m src.blog_pipeline.cli init-style ...` 生成或刷新 `state/STYLE_PROFILE.md`。
-2. 由各角色直接编辑 `state/MATERIAL_AUDIT.md`、`state/RESEARCH_SUMMARY.md`、`state/POST_OUTLINE.md`、`state/POST.md` 等文件，并同步 `state/STATUS.yaml`、`state/LOG.md`。
-3. 写作阶段结束后执行 `python -m src.blog_pipeline.cli check ...` 产出风格/事实报告，满足守门条件后进入发布。
-4. 使用 `python tools/run_stage.py` 观察 ready 任务或触发 manifest 中预配置命令。
+## 守门条件（示例）
+- Stylist 与 editor 在日志中签字确认语气一致。
+- Researcher 或 writer 在 `state/SOURCES.md` 提供可访问链接，并在正文就近插入引用。
+- Publisher 检查 `assets/` 与 `.meta.json` 成对存在、描述完整；若尚未提供图片，需在日志写明补交计划。
 
 ## 未来增强
-- 训练风格分类器，提高相似度评估可信度。
-- 集成图像生成/检索代理，为缺失素材自动补画面。
-- 构建反馈回路：根据读者互动数据更新 `STYLE_PROFILE.md`。
-- 推出多版本打包（长文/摘要/社媒短帖），共享调研成果。
+- 结合多模态预览，自动校验图片是否就近引用。
+- 构建反馈循环：根据读者互动数据更新 `STYLE_PROFILE.md` 与 `VOICE_AND_STRUCTURE.md`。
+- 引入低门槛的图像生成或截图规范（Mermaid、Excalidraw 等），减少空 meta。
 
-通过以上改造，仓库正式转型为“主题输入 → Markdown 博客” 的多代理写作平台。
+通过上述机制，团队可以在保持多代理自治的同时，维持文档化、可追溯的博客写作流程。

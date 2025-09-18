@@ -18,10 +18,8 @@ from typing import List, Optional
 import yaml
 
 MANIFEST = Path("state/STATUS.yaml")
-RESULTS_DIR = Path("results")
 FIGURES_DIR = Path("figures")
-ITERATIONS_FILE = Path("state/ITERATIONS.md")
-RESEARCH_SUMMARY_FILE = Path("state/RESEARCH_SUMMARY.md")
+ASSETS_DIR = Path("assets")
 
 
 @dataclass
@@ -72,97 +70,39 @@ def dep_completed(task_list: List[dict], dep_id: str) -> bool:
 
 
 def validate_artifacts() -> None:
-    """Enforce naming and registration conventions before launching tasks."""
-    errors: List[str] = []
+    """Friendly checks before运行任务."""
+    issues: List[str] = []
 
-    if RESULTS_DIR.exists():
-        allowed_prefixes = (
-            "style_",
-            "style",
-            "fact_",
-            "fact",
-            "outline_",
-            "draft_",
-            "question_",
-            "readability_",
-            "package_",
-            "post_",
-            "assets_",
-            "report_",
-            "README",
-        )
-        allowed_exact = {"style_check.json", "fact_check.log"}
-        style_reports = []
-        fact_logs = []
-        for path in sorted(RESULTS_DIR.glob("*")):
-            if path.is_dir():
-                continue
-            if path.name.startswith('.'):
-                continue
-            matched_prefix = next(
-                (prefix for prefix in allowed_prefixes if path.name.startswith(prefix)),
-                None,
-            )
-            if path.name in allowed_exact or matched_prefix:
-                if path.name.startswith("style_") or path.name == "style_check.json":
-                    style_reports.append(path.name)
-                if path.name.startswith("fact_") or path.name == "fact_check.log":
-                    fact_logs.append(path.name)
-                continue
-            errors.append(
-                "results/{name} 命名不符合约定（需以 style_/fact_/outline_/draft_/question_/readability_/package_/post_/assets_/report_ 开头，或为 style_check.json / fact_check.log）。".format(
-                    name=path.name
-                )
-            )
-
-        if style_reports and ITERATIONS_FILE.exists():
-            iterations_text = ITERATIONS_FILE.read_text(encoding="utf-8")
-            missing_styles = [name for name in style_reports if name not in iterations_text]
-            if missing_styles:
-                errors.append(
-                    "以下风格报告未登记在 state/ITERATIONS.md: " + ", ".join(missing_styles)
-                )
-        if fact_logs and RESEARCH_SUMMARY_FILE.exists():
-            summary_text = RESEARCH_SUMMARY_FILE.read_text(encoding="utf-8")
-            iterations_text = (
-                ITERATIONS_FILE.read_text(encoding="utf-8")
-                if ITERATIONS_FILE.exists()
-                else ""
-            )
-            missing_facts = [
-                name
-                for name in fact_logs
-                if name not in summary_text and name not in iterations_text
-            ]
-            if missing_facts:
-                errors.append(
-                    "以下事实核查日志未在 state/RESEARCH_SUMMARY.md 或 state/ITERATIONS.md 中引用: "
-                    + ", ".join(missing_facts)
-                )
+    if not MANIFEST.exists():
+        issues.append("缺少 state/STATUS.yaml，无法解析任务图。")
 
     if FIGURES_DIR.exists():
-        for png in FIGURES_DIR.glob("*.png"):
-            meta = png.with_suffix(".meta.json")
-            if not meta.exists():
-                errors.append(f"缺少图表元数据文件: figures/{meta.name}")
-                continue
+        metas = sorted(FIGURES_DIR.glob("*.meta.json"))
+        for meta in metas:
             try:
-                text = meta.read_text(encoding="utf-8")
-                data = json.loads(text)
-            except (OSError, json.JSONDecodeError) as exc:  # pragma: no cover - best effort
-                errors.append(f"无法解析 {meta}: {exc}")
+                data = json.loads(meta.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                issues.append(f"无法解析 {meta.name}: {exc}")
                 continue
-            required_keys = {"paragraph", "description", "source", "license"}
-            missing_keys = sorted(required_keys - set(data.keys()))
-            if missing_keys:
-                errors.append(
-                    f"figures/{meta.name} 缺少字段: {', '.join(missing_keys)}"
-                )
-            if data.get("paragraph") is None:
-                errors.append(f"figures/{meta.name} 未指定关联段落编号。")
+            for key in ("paragraph", "description", "source", "license"):
+                if not data.get(key):
+                    issues.append(f"{meta.name} 缺少字段 {key}")
+        # 发现有图片却无 meta
+        pngs = {p.name for p in FIGURES_DIR.glob("*.png")}
+        meta_pngs = {meta.with_suffix(".png").name for meta in metas}
+        missing_meta = pngs - meta_pngs
+        if missing_meta:
+            issues.append("以下图片缺少 .meta.json: " + ", ".join(sorted(missing_meta)))
 
-    if errors:
-        for msg in errors:
+    if ASSETS_DIR.exists() and FIGURES_DIR.exists():
+        asset_files = {p.name for p in ASSETS_DIR.glob("*.png")}
+        referenced = {meta.with_suffix(".png").name for meta in FIGURES_DIR.glob("*.meta.json")}
+        missing_assets = referenced - asset_files
+        if missing_assets:
+            issues.append("figures 中记录的图片在 assets/ 中不存在: " + ", ".join(sorted(missing_assets)))
+
+    if issues:
+        for msg in issues:
             print(f"[guard] {msg}")
         raise SystemExit(1)
 

@@ -1,47 +1,36 @@
 # 内容与工具规范
 
-## 模块 / 组件
-- **src/blog_pipeline/style.py** — 从示例文章抽取语气、句式、设问密度等特征，生成 `StyleProfile` 并写入 `state/STYLE_PROFILE.md` + JSON 缓存。
-- **src/blog_pipeline/check.py** — 运行风格匹配、设问/人称统计、图像密度与引用检查；输出 `results/style_check.json`、`results/fact_check.log`。
-- **src/blog_pipeline/text_utils.py** — 共有的段落/句子分割与指标计算函数。
-- **src/blog_pipeline/cli.py** — 暴露 `init-style`、`check` 子命令，供 orchestrator 或手动触发。
-- **未来模块占位**：`research.py`、`outline.py`、`drafter.py`、`editor.py` 可按需要逐步补齐，用于自动化调研、大纲与草稿。
-- **tests/** — 覆盖现有模块（`style`、`check`、`text_utils`）的核心函数，新增模块时同步补测。
+## 核心流程
+1. **风格提炼（stylist）**：默认沿用 `state/STYLE_PROFILE.md`；仅在 `samples/example-articles/` 更新时重新总结，并记录在 `state/LOG.md`。
+2. **素材审计（coordinator）**：将主题、素材路径、禁忌话题、调研权限记录于 `state/MATERIAL_AUDIT.md`，并在 `state/PUBLISH_PLAN.md` 制定里程碑。
+3. **资料整合（researcher）**：补充事实、链接与数据，更新 `state/RESEARCH_SUMMARY.md`、`state/SOURCES.md`（使用普通 Markdown 链接）。
+4. **大纲生成（outliner）**：在 `state/POST_OUTLINE.md` 列出模块、目标、引用/图片需求。
+5. **写作（writer）**：依据大纲在 `state/POST.md` 撰写草稿，输出 `draft/post.md`，嵌入 `![[assets/figure_01.png]]` 等图像占位。
+6. **编辑（editor）**：人工审读语气、事实、图像；在 `state/ITERATIONS.md`、`state/LOG.md` 记录反馈，必要时注明脚本辅助结论。
+7. **发布（publisher）**：核对 Markdown、`assets/`、`figures/*.meta.json`，确认链接与许可，更新 `docs/status.md` 并宣布 ready。
 
-## 数据流
-1. **风格提炼**：默认复用 `state/STYLE_PROFILE.md` 缓存；如需刷新，由 stylist 阅读 `samples/example-articles/` 并人工更新。
-2. **素材审计**：coordinator 手动整理用户输入 → `state/MATERIAL_AUDIT.md`（未来可由脚本补充）。
-3. **资料整合**：researcher 手动或脚本化更新 `state/RESEARCH_SUMMARY.md`、`state/SOURCES.md`。
-4. **大纲生成**：outliner 在 `state/POST_OUTLINE.md` 维护模块顺序与要点。
-5. **草稿撰写**：writer 在 `state/POST.md`、`draft/post.md` 完成正文与图像占位。
-6. **编辑校验**：`check.check_draft` + `check.fact_check` 组合生成风格与事实报告。
-7. **发布打包**：publisher 对 `draft/post.md`、`figures/`、`.meta.json` 做最终确认。
+## 资产管理
+- 图片须存放于 `assets/`，并创建对应的 `figures/figure_##.meta.json`（字段：`paragraph`、`description`、`source`、`license`、`captured_at`）。
+- 未完成的图片任务在 `state/POST.md` 标记 TODO，并在 `state/LOG.md` 指定负责人与截止时间。
+- 发布前由 publisher 抽查 `assets/` 预览，确保无乱码或敏感信息泄露。
 
-## 关键函数
-```python
-StyleProfile.from_corpus(paths: Sequence[Path]) -> StyleProfile
-check_draft(draft_path: Path, profile_path: Path) -> StyleCheckReport
-fact_check(draft_path: Path, sources_path: Path) -> tuple[str, list[str]]
-# 下列函数为后续扩展参考
-# collect_materials(...)
-# build_outline(...)
-# compose_draft(...)
-```
-- `StyleProfile.from_corpus`（可选）用作人工总结时的辅助参考。
-- `check_draft`、`fact_check`：提供自动提醒功能，但不替代编辑代理的人工审读。
+## 引用与链接
+- 正文使用行内链接或脚注；示例：`[效率报告](https://example.com)`。
+- `state/SOURCES.md` 采用 Markdown 列表：`- 标题 — 来源；日期；链接（说明）`。
+- 对内部或付费资源，在正文与 `SOURCES.md` 标注“仅内部引用”或权限说明。
 
-## 运行命令
-- `python -m src.blog_pipeline.cli init-style --corpus /Users/wsy/Dropbox/example-blog-articles --output state/STYLE_PROFILE.md`
-- `python -m src.blog_pipeline.cli check --draft draft/post.md --profile state/STYLE_PROFILE.md --sources state/SOURCES.md`
-- 调度脚本：`python tools/run_stage.py --stage draft --run`（结合 manifest 的命令字段）。
+## 可选工具
+- 历史脚本位于 `optional-tools/src/blog_pipeline/`，可辅助提炼风格或生成提示；运行前需在 `state/LOG.md` 记录命令与目的。
+- 脚本输出仅作参考，最终结论以人工审阅为准。
+- 如需测试或依赖，请在 `optional-tools/README.md` 补充说明，并确保不会影响默认流程。
 
-## 验证标准
-- `results/style_check.json`：包含 `style_match_score`（≥0.85）、`question_ratio`（≥0.03）、`second_person_ratio`（≥0.08）。
-- `results/fact_check.log`：列出每个事实句对应的来源标识；缺失时编辑需补充或删减。
-- 所有图像需在 `figures/` 下配套 `.meta.json`，描述出处、段落位置（例如 `P3`）。
-- 输出目录 `draft/post.md` 与 `figures/` 内容一致；若发布到 Obsidian/Notion，需保留 `![[assets/...]]` 嵌入格式。
+## 守门条件参考
+- Stylist 与 editor 在 `state/LOG.md` 确认当前稿件满足语气与事实要求。
+- `state/SOURCES.md` 覆盖正文引用的所有链接，并验证可访问性。
+- `assets/` 与 `figures/*.meta.json` 成对存在；缺项需在日志列出补救计划。
+- `state/ITERATIONS.md` 至少包含“草稿初版”“编辑反馈”“终稿确认”三条记录。
 
-## 协作与交付
-- writer 更新草稿后必须运行 `python -m src.blog_pipeline.cli check` 并将输出写入 `state/ITERATIONS.md`。
-- editor 在 `state/LOG.md` 中记录风格评分、事实核查步骤与命令退出码。
-- publisher 负责将 `draft/post.md` 与图像素材打包，并在 `.meta.json` 中更新最终发布时间。
+## 协作提示
+- 样例与风格缓存的更新要在 `samples/README.md`、`state/STYLE_PROFILE.md` 同步，并在日志注明原因。
+- 若某阶段被阻塞（例如素材不足、图像缺失），在 `state/STATUS.yaml` 将任务标记为 `blocked` 并描述后续动作。
+- 发布后可在日志记录读者反馈或待改进点，为下一轮写作提供输入。
