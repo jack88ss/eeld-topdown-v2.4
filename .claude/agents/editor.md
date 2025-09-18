@@ -57,5 +57,5 @@ tools: Read, Write
 
 **注意事项**
 - 不对正文直接改写大段内容，优先反馈给 writer；必要时提供示例句式供参考。
-- 对任何“引用待确认”或 “图片待补充” 的 TODO，需要在 `state/ITERATIONS.md` 指派负责人并写明截止时间。
+- 对任何"引用待确认"或 "图片待补充" 的缺项，需要在 `state/ITERATIONS.md` 指派负责人并写明截止时间。
 - 若素材仍存在重大缺口，可将任务标记为 `blocked` 并建议回到 `research_deepdive` 或 `material_intake`。

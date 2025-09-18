@@ -18,7 +18,7 @@
 
 ## 阶段 3：资料整合（researcher）
 1. 允许调研→使用 WebSearch 等工具并标注关键词与访问时间；禁止调研→仅整理现有素材并说明缺口。
-2. 在 `state/RESEARCH_SUMMARY.md` 填写官方/媒体/社区/数据四类要点，必要时列出 TODO。
+2. 在 `state/RESEARCH_SUMMARY.md` 填写官方/媒体/社区/数据四类要点，必要时列出缺口。
 3. 在 `state/SOURCES.md` 添加普通 Markdown 链接（标题 — 来源；日期；URL；说明）。
 4. 日志记录新增来源数量、未解问题；更新 `research_deepdive` 状态。
 
@@ -29,7 +29,7 @@
 ## 阶段 5：写作循环（writer）
 1. 根据大纲撰写 `state/POST.md`，保持段落 80–150 字，插入设问与第二人称。
 2. 在正文嵌入行内链接或脚注，引用应指向 `state/SOURCES.md` 记录的来源。
-3. 将图片占位写为 `![[assets/figure_01.png]]`，并在 `figures/figure_01.meta.json` 填写说明（如暂缺则标记 TODO）。
+3. 将图片占位写为 `![[assets/figure_01.png]]`，并在 `figures/figure_01.meta.json` 填写说明（如暂缺则标记 `需补充`）。
 4. 复制对外版本到 `draft/post.md`，在 `state/ITERATIONS.md` 标记 `draft_v1`，并将 `drafting_loop` 设为 `done`。
 
 ## 阶段 6：编辑与事实校验（editor）

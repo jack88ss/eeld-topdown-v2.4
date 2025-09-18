@@ -33,7 +33,7 @@
    - 更新 `state/MATERIAL_AUDIT.md`、`state/PUBLISH_PLAN.md`，说明是否需要外部调研。
 3. **Research Deepdive**（researcher）
    - 若需扩展资料，执行在线检索或整合用户提供材料。
-   - 写入 `state/RESEARCH_SUMMARY.md` 与 `state/SOURCES.md`（引用按 `[@key]` 编号）。
+   - 写入 `state/RESEARCH_SUMMARY.md` 与 `state/SOURCES.md`（使用Markdown链接 `[描述](URL)` 格式）。
 4. **Outline Blueprint**（outliner）
    - 基于风格与事实生成模块化结构，记录在 `state/POST_OUTLINE.md`。
 5. **Drafting Loop**（writer）
