@@ -11,8 +11,9 @@
   7. `publisher` — 核对 Markdown 与资产、更新 `docs/status.md`，在 `state/LOG.md` 宣布 ready。
 - **状态机**：`state/STATUS.yaml` 维护阶段与守门条件；`/start-blog` 负责解析并调度。
 - **事实源**：`state/` 与 `samples/` 目录构成单一事实来源，所有修改须追加而非覆盖历史。
+- **核心规范**：`state/WRITING_SPEC.md` 统一定义语气风格、内容结构、视觉排版与质量指标。
 - **调研策略**：
-  - 若仅使用用户素材，在 `state/MATERIAL_AUDIT.md` 标注“外部调研：关闭”，并在日志说明原因。
+  - 若仅使用用户素材，在 `state/MATERIAL_AUDIT.md` 标注"外部调研：关闭"，并在日志说明原因。
   - 需要扩展时，优先官方或权威媒体；在正文中使用行内链接，并在 `state/SOURCES.md` 记录标题、来源、日期、URL。
 - **风格守门条件**：
   - Stylist 与 editor 均在 `state/LOG.md` 确认语气符合缓存要点。
