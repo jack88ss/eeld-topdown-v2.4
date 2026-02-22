@@ -1,29 +1,45 @@
-# 素材审计报告
+# Material Audit Report
 
-> 由 coordinator 或 researcher 维护，梳理用户提供的素材、限制条件与可公开引用的来源，为后续调研与写作提供事实边界。
+**Date**: 2026-01-20
+**Subject**: Unit 1 Goldilocks and the three bears
+**Grade**: Grade 5 (Semester 1)
+**Edition**: Yilin Press (译林版)
 
-## 用户输入
-- **主题 / 角度**：<必填；直接引用用户原话>
-- **提供材料**：<列出笔记、图片、音频、采访、数据表、演示文稿等路径或链接；若无写“无”>
-- **禁止或敏感话题**：<列出禁止讨论或必须规避的措辞>
-- **引用边界**：<例如“仅使用公开资料” / “可引用付费课程”>
+## 1. Available Materials Inventory
 
-## 现有内容浓度评估
-- **覆盖度**：<材料是否足以生成文章？none / partial / full>
-- **细节空缺**：<列出需要补充的事实、案例或数据>
-- **用户语气线索**：<从材料中提取直观语气样本，如二人称、问句、比喻>
+| File Name | Type | Path | Content Summary |
+|-----------|------|------|-----------------|
+| `unit1_goldilocks_example.txt` | Textbook Content (Text) | `materials/textbooks/` | Story text, vocabulary, key phrases, grammar (There is/are), objectives, key points, difficulties, background, lesson metadata. |
+| `README.md` | Folder Guide | `materials/` | Materials folder structure, formats, and upload guidance. |
+| `README.md` | Folder Guide | `materials/textbooks/` | Textbooks folder guidance and naming examples. |
+| `README.md` | Folder Guide | `materials/standards/` | Standards folder guidance and example file names. |
+| `README.md` | Folder Guide | `materials/reference/` | Reference folder guidance and example file names. |
 
-## 资料状态
-- **本地文件**：<存储位置、格式、更新日期>
-- **在线来源**：<URL 与访问时间>
-- **许可与引用要求**：<如需署名、禁止商用等>
+## 2. Observed Coverage
 
-## 补充调研计划
-- 检索范围：<搜索引擎 / 行业数据库 / 社交平台>
-- 关键词与过滤条件：<列出中英文关键词>
-- 目标证据类型：<案例、产品体验、历史沿革、数据点等>
-- 预期完成时间（UTC）：<YYYY-MM-DDTHH:MM>
+**Textbook Content**:
+- One unit-level text file with story, language targets, and teaching notes.
 
-## 同步记录
-- 迭代日志：<每次更新注明负责人、时间、主要发现，保持增量记录>
-- 关联任务：<对应 `state/STATUS.yaml` 中的任务 ID 与状态>
+**Standards**:
+- No actual standards documents found; folder contains guidance only.
+
+**Reference Materials**:
+- No reference materials found; folder contains guidance only.
+
+## 3. Gaps and Missing Items
+
+**Missing (Recommended)**:
+- Student book PDF or scans (`materials/textbooks/student_book/`).
+- Teacher book PDF or scans (`materials/textbooks/teacher_book/`).
+- Course standards files (e.g., 2022 English Curriculum Standards).
+- Supporting reference materials (teaching cases, activity resources).
+
+**Optional (Non-blocking for design)**:
+- Audio narration files for story text.
+- Visuals/illustrations for story scenes.
+
+## 4. Status
+
+**Status**: ✅ **Sufficient to proceed with Curriculum Analysis**
+
+The unit text file provides story content, grammar targets, and teaching notes. Additional standards and reference materials would improve alignment but are not required to begin analysis.

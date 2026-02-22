@@ -1,100 +1,265 @@
-# 多代理博客写作脚手架
+# 小学英语教学设计系统
 
-这个仓库从学术论文模板演化而来，如今聚焦**长篇中文博客**。流程依托 `/start-blog` 调用的多代理协作：stylist 锁定语气、researcher 梳理事实、outliner 制定段落、writer 生成正文、editor 审读校对、publisher 打包发布。
+> **v2.5.0** - 基于 **Oh My OpenCode + Sisyphus** 的智能教学设计系统，一行命令生成完整教案
 
-> 以代理驱动为先：默认通过 `/start-blog` 或等效 orchestrator 推进工作；Python 脚本仅在必要时作辅助检查。
+## 🚀 立即开始（2步）
 
-> 交付物为 Markdown (`draft/post.md`) 与图像资产（`assets/` + `figures/*.meta.json`）；不再生成 Typst / PDF / Word，也不再强制依赖字体文件。
-
-## 目录速览
-- `.claude/` / `.codex/`（后续同步）：多代理配置与命令。
-- `state/`：进度与事实来源的唯一事实源。
-  - `STATUS.yaml` — 工作流状态机（plan → research → outline → draft → review → publish）。
-  - `STYLE_PROFILE.md` — 示例文章提炼出的语气画像。
-  - `MATERIAL_AUDIT.md` — 用户提供材料与限制清单。
-  - `RESEARCH_SUMMARY.md` — 调研摘要与引用矩阵。
-  - `POST_OUTLINE.md` / `POST.md` — 大纲与工作稿。
-  - `ITERATIONS.md` — 草稿版本与编辑反馈记录。
-  - `LOG.md` — 关键操作、命令与守门条件变更。
-- `draft/`：`post.md` 为唯一交付格式，可复制到 Obsidian/Notion。
-- `assets/`：实际插图或截图；发布前需确保与正文一致。
-- `figures/`：存放 `.meta.json` 描述（paragraph、description、source、license、captured_at）。
-- `samples/example-articles/`：内置 13 篇风格样例；stylist 默认从此处读取并维护 `state/STYLE_PROFILE.md`。
-- `optional-tools/`（可选）：历史脚本与测试集中地，使用前请在 `state/LOG.md` 记录目的与结论。
-- `fonts/`：旧流程遗留字体文件，如需用于图片排版可手动引用，默认不强制。
-- `tools/run_stage.py`：调度/守卫脚本，读取 `state/STATUS.yaml` 判定可执行任务。
-
-## 工作流阶段
-1. **Style Grounding**（stylist）
-   - 阅读 `state/STYLE_PROFILE.md` 与 `samples/README.md`；如样例无更新则在日志中记录“沿用缓存”。
-   - 若用户替换样例，再以模型/人工总结语气特征，更新 `state/STYLE_PROFILE.md`。
-2. **Material Intake**（coordinator）
-   - 读取用户指定主题/材料。
-   - 更新 `state/MATERIAL_AUDIT.md`、`state/PUBLISH_PLAN.md`，说明是否需要外部调研。
-3. **Research Deepdive**（researcher）
-   - 若需扩展资料，执行在线检索或整合用户提供材料。
-   - 写入 `state/RESEARCH_SUMMARY.md` 与 `state/SOURCES.md`（使用Markdown链接 `[描述](URL)` 格式）。
-4. **Outline Blueprint**（outliner）
-   - 基于风格与事实生成模块化结构，记录在 `state/POST_OUTLINE.md`。
-5. **Drafting Loop**（writer）
-   - 依据大纲在 `state/POST.md` 完成段落草稿，并生成对外稿 `draft/post.md`。
-   - 插入 `![[assets/figure_01.png]]` 等图片占位并撰写对应说明。
-6. **Editing Pass**（editor）
-   - 以人工审读为主：对照 `state/STYLE_PROFILE.md`、事实资料、图片说明，给出修改意见。
-   - 如需辅助，可运行 `python -m src.blog_pipeline.cli check ...` 获取提示，再在 `state/LOG.md` 说明是否采纳。
-   - 在 `state/ITERATIONS.md` 标记最新一版草稿和关键反馈。
-7. **Packaging Release**（publisher）
-   - 核对 `assets/` 与 `figures/*.meta.json` 是否成对存在，正文链接是否有效。
-   - 更新 `docs/status.md`、`state/LOG.md` 并宣布守门条件达成。
-
-整个流程默认自驱：除非用户明确要求停顿或提供增量材料，代理需按状态机连续推进直至 `packaging_release` 完成。
-
-## 命令示例（当前可用）
-```bash
-# 1. 启动 orchestrator（推荐）
-/start-blog <主题> [--materials ...]
-
-# 2. （可选）若示例文章发生变更，可手动运行缓存脚本
-python -m src.blog_pipeline.cli init-style --corpus samples/example-articles --output state/STYLE_PROFILE.md
-
-# 3. （可选）在完成草稿后使用脚本做额外校验
-python -m src.blog_pipeline.cli check --draft draft/post.md --profile state/STYLE_PROFILE.md --sources state/SOURCES.md
-
-# 4. 查看 ready 任务（调度守卫）
-python tools/run_stage.py
+### 1. 启动系统
+```powershell
+cd 'C:\Users\Administrator\Desktop\myproject\eeld-top-down'
+.\.opencode\start-ohmyopencode.bat
 ```
 
-> 说明：默认依靠多代理阅读样例和草稿完成风格提炼与事实审校；以上脚本仅作为必要时的辅助工具。
+### 2. 输入任务
+```
+ulw Design lesson: Unit 1 Goldilocks, 五年级, 译林版
+```
 
-## 守门条件
-- **风格**：stylist/ editor 均在 `state/LOG.md` 签字确认语气一致，并列出核心改动建议。
-- **事实**：引用段落需附带行文链接或脚注，并在 `state/SOURCES.md` 列出对应来源；editor 在日志中说明核查结论。
-- **图像**：`assets/` 与 `figures/*.meta.json` 成对存在，meta 包含来源与许可；publisher 在 `state/LOG.md` 登记检查结果。
-- **日志**：每次阶段完成需追加 `state/LOG.md` 条目，`state/ITERATIONS.md` 记录草稿版本与反馈。
+**完成！** Sisyphus 会自动执行 9 个阶段，15 分钟后生成完整教案 ✨
 
-## 只用用户素材 vs. 启动调研
-- 若用户说明“不要调研”，`material_intake` 需在 `state/MATERIAL_AUDIT.md` 标记 `覆盖度: full`，`research_deepdive` 可直接引用素材并在 `state/LOG.md` 说明跳过外部检索。
-- 若素材不足，则记录缺口，触发 researcher 执行补充检索，注明搜索关键词、时间、来源可信度。
+---
 
-## 与示例文章对齐
-- 样例集中存放在 `samples/example-articles/`，简要摘要见 `samples/README.md`。
-- 每次写作前，stylist/ writer 应阅读相近主题样例，提炼要点并更新 `state/STYLE_PROFILE.md` 或 `state/VOICE_AND_STRUCTURE.md`。
-- 若引入新样例，请保留原文件、补写摘要，并在 `state/LOG.md` 记录更新原因。
+## 📚 文档导航
 
-## 调度与协同
-- `state/STATUS.yaml` 描述阶段与任务依赖；推进、回滚或并行任务时需同步 `docs/status.md` 与 `state/LOG.md`。
-- `/start-blog` 为推荐入口：协调器读取 state 文档、触发子代理并等待守门条件完成后汇报。
-- `tools/run_stage.py` 仅用于列出 ready 任务或快速检查资产状态，不再强制校验 JSON 报告。
-- 关键操作需写入 `state/LOG.md`（含时间戳、平台、负责人、要点），`state/ITERATIONS.md` 记录草稿版本、反馈与下一步。
+**新用户？选择你的起点**：
+- 📖 [立即开始](START_NOW.md) - 最简单的启动方式（推荐）
+- 📖 [快速指南](QUICK_START.md) - 3秒理解系统
+- 📖 [系统架构](AGENTS.md) - Sisyphus 如何调度 agents
+- 📖 [项目信息](PROJECT_INFO.md) - 完整项目说明
+- 📖 [详细配置](CORRECT_STARTUP_PROCESS.md) - 高级用户
 
-## 下一步开发建议
-1. 在 `src/blog_pipeline/` 中实现实际分析与写作模块，并为关键函数补充单元测试。
-2. 提供自动化脚本，根据 `state/STATUS.yaml` 的 `command` 字段调用相应 CLI。
-3. 构建风格学习缓存：对样例文章进行向量化，减少每次提取开销。
-4. 集成图像检索/生成模块，自动填充缺失配图并更新 `.meta.json`。
+---
 
-欢迎继续扩展，使其成为“主题→Markdown 博客”的端到端写作利器。
-## 样例文章缓存
-- 样例文本位于 `samples/example-articles/`，作为个人风格基准。
-- `state/STYLE_PROFILE.md` 保存最近一次的人工总结；stylist 默认沿用该缓存，仅在样例更新时重写。
-- 若用户提供额外范例，可先放入该目录再触发 `/start-blog`，或直接在 `state/STYLE_PROFILE.md` 追加备注。
+## ✨ 核心特性
+
+### 🚀 超级自动化 ⭐新架构
+- **Sisyphus 主调度器** - Oh My OpenCode 核心 agent
+- 一行命令启动，自动执行 9 个阶段
+- 智能模型选择（Gemini/Claude）
+- TODO 强制执行，确保完成
+- 自动错误处理和重试
+
+### 🤖 8个专业 Sub-Agents
+1. **Orchestrator（姜子牙）** - 流程管理和材料审核
+2. **Curriculum Analyst** - 课程分析
+3. **Content Designer** - 内容设计
+4. **Activity Designer** - 活动设计（含大任务建议）
+5. **Resource Coordinator** - 资源协调
+6. **Assessment Expert** - 评估设计
+7. **Quality Reviewer** - 质量审核
+8. **Package Publisher** - 打包发布
+
+### 🎯 基于真实教材设计
+- 支持上传教材（学生用书、教师用书）
+- 支持上传课程标准和参考资料
+- 自动扫描和审核材料（Gemini Pro 1.5）
+- 基于真实材料进行教学设计
+
+### 📦 完整交付物
+- 完整教案（包含教学过程、板书设计等）
+- **学生预习清单**（具体可操作的预习任务）⭐新增
+- **家庭作业纸**（可打印的练习题）⭐新增
+- 课程分析报告
+- 内容设计方案
+- 活动设计方案
+- 资源清单
+- 评估设计方案
+- 质量审核报告
+- 使用说明
+
+## 🎓 教学理念
+
+基于 **"任务驱动、自上而下学习法"**：
+- ✅ 真实任务驱动
+- ✅ 完整学习过程
+- ✅ 有形学习成果
+- ✅ 真实交际目的
+- ✅ 单一核心聚焦
+
+---
+
+## 📊 使用流程
+
+### 步骤1：准备教学材料（可选）
+
+将教学材料放入对应文件夹：
+
+```
+materials/
+├── textbooks/          # 教材文件
+│   ├── student_book/   # 学生用书
+│   └── teacher_book/   # 教师教学用书
+├── standards/          # 课程标准
+└── reference/          # 参考资料
+```
+
+**支持格式**：PDF、Word (.doc, .docx)、TXT、Markdown
+
+**示例文件名**：
+- `人教版PEP三年级上册_学生用书.pdf`
+- `义务教育英语课程标准2022版.pdf`
+- `小学英语课堂游戏100例.docx`
+
+### 步骤2：启动设计流程
+
+使用命令：
+```
+/start-lesson-design <主题> <年级> <教材>
+```
+
+**示例**：
+```
+/start-lesson-design Animals 四年级 人教版PEP
+/start-lesson-design My_Family 三年级 外研版
+/start-lesson-design Colors 三年级 人教版PEP
+```
+
+### 步骤3：等待生成
+
+系统将自动完成以下流程：
+1. **材料审核** - 扫描并分析上传的材料
+2. **课程分析** - 基于教材和课程标准分析
+3. **内容设计** - 设计知识点呈现方式
+4. **活动设计** - 设计课堂活动
+5. **资源协调** - 整理教学资源
+6. **评估设计** - 设计评估方式
+7. **质量审核** - 全面审核质量
+8. **打包发布** - 生成完整教案
+9. **学生材料** - 生成预习清单和作业纸 ⭐新增
+
+## 📂 项目结构
+
+```
+elementary-english-lesson-designer/
+├── materials/              # 教学材料（用户上传）⭐新增
+│   ├── textbooks/         # 教材
+│   ├── standards/         # 课程标准
+│   └── reference/         # 参考资料
+├── state/                 # 状态和设计文档
+│   ├── MATERIAL_AUDIT.md  # 材料审核报告 ⭐新增
+│   ├── CURRICULUM_ANALYSIS.md
+│   ├── CONTENT_DESIGN.md
+│   ├── ACTIVITY_DESIGN.md
+│   ├── RESOURCE_LIST.md
+│   ├── ASSESSMENT_DESIGN.md
+│   ├── QUALITY_REVIEW.md
+│   ├── STATUS.yaml        # 状态机
+│   └── LOG.md            # 工作日志
+├── draft/                      # 最终交付物
+│   ├── lesson_plan.md         # 完整教案（主要交付物）
+│   ├── student_preview_guide.md # 学生预习清单 ⭐新增
+│   ├── homework_sheet.md      # 家庭作业纸 ⭐新增
+│   ├── PACKAGE_CHECKLIST.md
+│   └── USAGE_GUIDE.md
+├── assets/               # 教学资源
+├── samples/              # 示例教学设计
+└── .claude/              # 代理配置
+    ├── agents/           # 各代理配置文件
+    └── commands/         # 命令配置
+```
+
+## 🎓 支持的教材版本
+
+- **人教版PEP** (人民教育出版社)
+- **外研版** (外语教学与研究出版社)
+- **译林版** (译林出版社)
+- **北师大版** (北京师范大学出版社)
+- **冀教版** (河北教育出版社)
+- **湘少版** (湖南少年儿童出版社)
+
+## 📋 教学设计规范
+
+系统遵循以下规范：
+- 《义务教育英语课程标准》（2022年版）
+- 英语学科核心素养框架
+- 小学英语教学大纲
+- 各年级分级目标体系
+
+## 🔍 工作流程
+
+```mermaid
+graph TD
+    A[上传教学材料] --> B[材料审核]
+    B --> C[课程分析]
+    C --> D[内容设计]
+    D --> E[活动设计]
+    E --> F[资源协调]
+    E --> G[评估设计]
+    F --> H[质量审核]
+    G --> H
+    H --> I[打包发布]
+    I --> J[完整教案]
+```
+
+## 📊 质量保证
+
+### 守门条件
+- ✅ 材料审核：至少有教材或课程标准
+- ✅ 课程分析：基于真实材料完成分析
+- ✅ 内容设计：紧扣教学目标和教材内容
+- ✅ 活动设计：层次分明、可操作
+- ✅ 资源准备：清单完整且可获取
+- ✅ 评估设计：与教学目标完全对齐
+- ✅ 质量审核：所有审核项通过
+- ✅ 打包发布：生成完整可用教案
+
+### 质量指标
+- 教学目标明确具体
+- 活动设计层次分明
+- 时间分配精确控制
+- 差异化支持全覆盖
+- 可操作性详细到位
+
+## 📝 版权声明
+
+- 所有上传材料仅用于个人教学设计
+- 请遵守版权法规
+- 材料来源记录在 `state/SOURCES.md`
+- 如包含敏感信息，请先脱敏处理
+
+## 🛠️ 技术架构
+
+基于 Claude Skills 架构：
+- 多代理协作系统
+- 状态机管理
+- 日志追踪
+- 守门条件检查
+- 迭代记录
+
+详见：
+- `AGENT_ARCHITECTURE.md` - 架构说明
+- `CLAUDE.md` - 项目规范
+- `AGENTS.md` - 代理配置指南
+
+## 📞 获取帮助
+
+- 查看 `samples/lesson-designs/` 了解示例
+- 查看 `state/LOG.md` 了解执行日志
+- 查看 `docs/status.md` 了解当前状态
+
+## 🎯 最新更新
+
+**2026-01-17** - v2.4.0 ⭐重大升级
+- 🔥 **多模型支持**：智能选择最佳模型，降低成本44%
+- 🔥 **大文件处理**：支持几十MB的PDF教材（Gemini Pro 1.5）
+- 🔥 **用户确认机制**：核心大任务由您决定
+- ⭐ 任务驱动教学（Top-Down Learning）
+- ⭐ 学生预习清单生成（任务驱动版）
+- ⭐ 家庭作业纸生成（任务驱动版）
+- ⭐ 材料上传和审核功能
+- 完整日志和成本追踪
+
+**v2.3.1** - 聚焦原则
+- 每节课围绕**一个**核心大任务
+- 所有活动服从大任务
+
+**v2.2.0** - 基础功能
+- 材料上传功能
+- 学生预习清单
+- 家庭作业纸
+
+---
+
+**让我们确保每个环节都完美衔接...** 
+
+— Orchestrator (姜子牙)

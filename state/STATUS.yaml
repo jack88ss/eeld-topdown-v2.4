@@ -1,77 +1,148 @@
-# Global workflow manifest for blog-writing pipeline
-# 在推进阶段前确认风格、事实、图像检查均已在 state/LOG.md 留痕。
-current_stage: plan        # plan | research | outline | draft | review | publish | done
+# Global workflow manifest for lesson-design pipeline
+# 在推进阶段前确认课程分析、内容设计、活动设计、资源准备、评估设计检查均已在 state/LOG.md 留痕。
+current_stage: design        # plan | design | resource | assessment | review | publish | done
 branches:
   main:
-    description: "Primary long-form blog workflow"
+    description: "Primary elementary English lesson design workflow"
     status: in_progress     # in_progress | blocked | done
     tasks:
-      - id: style_grounding
-        stage: plan
-        assignee: stylist
-        status: todo
-        depends_on: []
-        outputs:
-          - state/STYLE_PROFILE.md
-          - state/LOG.md
       - id: material_intake
         stage: plan
-        assignee: coordinator
-        status: todo
-        depends_on:
-          - style_grounding
+        assignee: orchestrator
+        status: done
+        depends_on: []
         outputs:
           - state/MATERIAL_AUDIT.md
-          - state/PUBLISH_PLAN.md
-      - id: research_deepdive
-        stage: research
-        assignee: researcher
-        status: todo
+          - state/LOG.md
+        description: "审核用户上传的教学材料（教材、课程标准、参考资料）"
+      
+      - id: curriculum_analysis
+        stage: plan
+        assignee: curriculum_analyst
+        status: done
         depends_on:
           - material_intake
         outputs:
-          - state/RESEARCH_SUMMARY.md
-          - state/SOURCES.md
-      - id: outline_blueprint
-        stage: outline
-        assignee: outliner
-        status: blocked
-        depends_on:
-          - research_deepdive
-        outputs:
-          - state/POST_OUTLINE.md
-      - id: drafting_loop
-        stage: draft
-        assignee: writer
-        status: blocked
-        depends_on:
-          - outline_blueprint
-        outputs:
-          - state/POST.md
-          - draft/post.md
-      - id: editing_pass
-        stage: review
-        assignee: editor
-        status: blocked
-        depends_on:
-          - drafting_loop
-        guards:
-          style_review: "logged"
-          fact_review: "logged"
-          images_checked: "logged"
-        outputs:
+          - state/CURRICULUM_ANALYSIS.md
           - state/LOG.md
-          - state/ITERATIONS.md
-      - id: packaging_release
-        stage: publish
-        assignee: publisher
+      
+      - id: content_design
+        stage: design
+        assignee: content_designer
+        status: done
+        depends_on:
+          - curriculum_analysis
+        outputs:
+          - state/CONTENT_DESIGN.md
+          - state/LOG.md
+      
+      - id: big_task_proposal
+        stage: design
+        assignee: activity_designer
+        status: todo
+        depends_on:
+          - content_design
+        outputs:
+          - state/BIG_TASK_PROPOSAL.md
+          - state/LOG.md
+        description: "Activity Designer提出核心大任务建议，等待用户确认或修改"
+        requires_user_confirmation: true
+        confirmation_prompt: "请确认或修改本节课的核心大任务"
+      
+      - id: activity_design
+        stage: design
+        assignee: activity_designer
         status: blocked
         depends_on:
-          - editing_pass
+          - big_task_proposal
         outputs:
-          - draft/post.md
+          - state/ACTIVITY_DESIGN.md
+          - state/LOG.md
+        description: "基于用户确认的核心大任务设计活动链"
+      
+      - id: resource_coordination
+        stage: resource
+        assignee: resource_coordinator
+        status: blocked
+        depends_on:
+          - activity_design
+        outputs:
+          - state/RESOURCE_LIST.md
+          - state/SOURCES.md
           - assets/
-          - figures/
+      
+      - id: assessment_design
+        stage: assessment
+        assignee: assessment_expert
+        status: blocked
+        depends_on:
+          - content_design
+          - activity_design
+        outputs:
+          - state/ASSESSMENT_DESIGN.md
+          - state/LOG.md
+      
+      - id: quality_review
+        stage: review
+        assignee: quality_reviewer
+        status: blocked
+        depends_on:
+          - curriculum_analysis
+          - content_design
+          - activity_design
+          - resource_coordination
+          - assessment_design
+        guards:
+          curriculum_check: "logged"
+          content_check: "logged"
+          activity_check: "logged"
+          resource_check: "logged"
+          assessment_check: "logged"
+        outputs:
+          - state/QUALITY_REVIEW.md
+          - state/ITERATIONS.md
+          - state/LOG.md
+      
+      - id: package_publish
+        stage: publish
+        assignee: package_publisher
+        status: blocked
+        depends_on:
+          - quality_review
+        outputs:
+          - draft/lesson_plan.md
+          - draft/PACKAGE_CHECKLIST.md
+          - draft/USAGE_GUIDE.md
+          - assets/
           - docs/status.md
-pending_notifications: []
-last_updated: 2025-09-18T00:00:00Z
+      
+      - id: preview_checklist
+        stage: publish
+        assignee: package_publisher
+        status: blocked
+        depends_on:
+          - package_publish
+        outputs:
+          - state/PREVIEW_CHECKLIST.md
+          - draft/student_preview_guide.md
+        description: "根据完整教案生成学生预习清单，提供具体可操作的预习任务"
+      
+      - id: homework_sheet
+        stage: publish
+        assignee: package_publisher
+        status: blocked
+        depends_on:
+          - package_publish
+        outputs:
+          - state/HOMEWORK_SHEET.md
+          - draft/homework_sheet.md
+        description: "根据教学设计生成可打印的家庭作业纸，包含多种题型练习"
+
+pending_notifications:
+  - "流程改进完成：新增材料上传功能（material_intake任务）"
+  - "现在支持基于真实教材和课程标准的教学设计"
+  - "新增学生预习清单生成功能（preview_checklist任务）"
+  - "新增家庭作业纸生成功能（homework_sheet任务）"
+  - "v2.3.1: 新增核心大任务确认流程（big_task_proposal任务）⭐"
+  - "Activity Designer会提出大任务建议，用户确认后再继续设计"
+last_updated: 2026-02-03T00:00:00Z

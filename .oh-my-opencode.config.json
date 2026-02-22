@@ -1,0 +1,327 @@
+{
+  "$schema": "https://ohmyopencode.com/config.schema.json",
+  "version": "1.0.0",
+  "name": "小学英语教学设计智能代理系统",
+  
+  "agents": {
+    "orchestrator": {
+      "name": "姜子牙 (Orchestrator)",
+      "role": "流程总指挥",
+      "description": "统筹全局，协调七个专业代理完成教学设计",
+      "config_file": ".claude/agents/orchestrator.md",
+      "model": "reasoning",
+      "capabilities": [
+        "workflow_coordination",
+        "state_management",
+        "model_selection",
+        "error_handling",
+        "user_confirmation"
+      ],
+      "priority": 1
+    },
+    
+    "curriculum_analyst": {
+      "name": "课程分析师 (Curriculum Analyst)",
+      "role": "课程分析专家",
+      "description": "分析课程标准、教材内容、学情特点",
+      "config_file": ".claude/agents/curriculum_analyst.md",
+      "model": "reasoning",
+      "capabilities": [
+        "curriculum_analysis",
+        "student_profiling",
+        "learning_objectives"
+      ],
+      "priority": 2,
+      "depends_on": ["orchestrator"]
+    },
+    
+    "content_designer": {
+      "name": "内容设计师 (Content Designer)",
+      "role": "教学内容设计专家",
+      "description": "设计核心任务和语言工具准备",
+      "config_file": ".claude/agents/content_designer.md",
+      "model": "reasoning",
+      "capabilities": [
+        "task_design",
+        "content_structuring",
+        "language_scaffolding"
+      ],
+      "priority": 3,
+      "depends_on": ["curriculum_analyst"]
+    },
+    
+    "activity_designer": {
+      "name": "活动设计师 (Activity Designer)",
+      "role": "教学活动设计专家",
+      "description": "设计核心大任务和活动链",
+      "config_file": ".claude/agents/activity_designer.md",
+      "model": "creative",
+      "capabilities": [
+        "big_task_proposal",
+        "activity_chain_design",
+        "interaction_design"
+      ],
+      "priority": 4,
+      "depends_on": ["content_designer"],
+      "requires_user_confirmation": true
+    },
+    
+    "resource_coordinator": {
+      "name": "资源协调员 (Resource Coordinator)",
+      "role": "教学资源管理专家",
+      "description": "整理和准备教学资源",
+      "config_file": ".claude/agents/resource_coordinator.md",
+      "model": "fast",
+      "capabilities": [
+        "resource_collection",
+        "asset_management",
+        "source_tracking"
+      ],
+      "priority": 5,
+      "depends_on": ["activity_designer"]
+    },
+    
+    "assessment_expert": {
+      "name": "评估专家 (Assessment Expert)",
+      "role": "教学评估设计专家",
+      "description": "设计评估方案和练习题",
+      "config_file": ".claude/agents/assessment_expert.md",
+      "model": "reasoning",
+      "capabilities": [
+        "assessment_design",
+        "rubric_creation",
+        "exercise_generation"
+      ],
+      "priority": 6,
+      "depends_on": ["content_designer", "activity_designer"]
+    },
+    
+    "quality_reviewer": {
+      "name": "质量审核员 (Quality Reviewer)",
+      "role": "教学设计质量审核专家",
+      "description": "全面审核教学设计质量",
+      "config_file": ".claude/agents/quality_reviewer.md",
+      "model": "reasoning",
+      "capabilities": [
+        "quality_assurance",
+        "completeness_check",
+        "alignment_verification"
+      ],
+      "priority": 7,
+      "depends_on": [
+        "curriculum_analyst",
+        "content_designer",
+        "activity_designer",
+        "resource_coordinator",
+        "assessment_expert"
+      ]
+    },
+    
+    "package_publisher": {
+      "name": "发布专家 (Package Publisher)",
+      "role": "教案打包发布专家",
+      "description": "生成完整教案、预习清单、作业纸",
+      "config_file": ".claude/agents/package_publisher.md",
+      "model": "fast",
+      "capabilities": [
+        "lesson_plan_generation",
+        "preview_checklist_creation",
+        "homework_sheet_generation",
+        "document_formatting"
+      ],
+      "priority": 8,
+      "depends_on": ["quality_reviewer"]
+    }
+  },
+  
+  "workflows": {
+    "lesson_design": {
+      "name": "完整教学设计流程",
+      "description": "从材料审核到教案发布的完整流程",
+      "stages": [
+        {
+          "id": "material_intake",
+          "name": "材料审核",
+          "agent": "orchestrator",
+          "model": "long_context",
+          "outputs": ["state/MATERIAL_AUDIT.md"],
+          "gates": ["至少有教材或课程标准"]
+        },
+        {
+          "id": "curriculum_analysis",
+          "name": "课程分析",
+          "agent": "curriculum_analyst",
+          "model": "reasoning",
+          "outputs": ["state/CURRICULUM_ANALYSIS.md"],
+          "gates": ["识别重难点", "分析学情"]
+        },
+        {
+          "id": "content_design",
+          "name": "内容设计",
+          "agent": "content_designer",
+          "model": "reasoning",
+          "outputs": ["state/CONTENT_DESIGN.md"],
+          "gates": ["核心任务明确", "语言工具准备"]
+        },
+        {
+          "id": "big_task_proposal",
+          "name": "核心大任务建议",
+          "agent": "activity_designer",
+          "model": "reasoning",
+          "outputs": ["state/BIG_TASK_PROPOSAL.md"],
+          "gates": ["用户确认大任务"],
+          "requires_user_confirmation": true,
+          "pause_after": true
+        },
+        {
+          "id": "activity_design",
+          "name": "活动设计",
+          "agent": "activity_designer",
+          "model": "creative",
+          "outputs": ["state/ACTIVITY_DESIGN.md"],
+          "gates": ["活动链完整", "层次分明"]
+        },
+        {
+          "id": "resource_coordination",
+          "name": "资源协调",
+          "agent": "resource_coordinator",
+          "model": "fast",
+          "outputs": ["state/RESOURCE_LIST.md", "state/SOURCES.md"],
+          "gates": ["资源清单完整"]
+        },
+        {
+          "id": "assessment_design",
+          "name": "评估设计",
+          "agent": "assessment_expert",
+          "model": "reasoning",
+          "outputs": ["state/ASSESSMENT_DESIGN.md"],
+          "gates": ["评估方案科学"]
+        },
+        {
+          "id": "quality_review",
+          "name": "质量审核",
+          "agent": "quality_reviewer",
+          "model": "reasoning",
+          "outputs": ["state/QUALITY_REVIEW.md"],
+          "gates": ["所有审核项通过"]
+        },
+        {
+          "id": "package_publish",
+          "name": "打包发布",
+          "agent": "package_publisher",
+          "model": "fast",
+          "outputs": [
+            "draft/lesson_plan.md",
+            "draft/student_preview_guide.md",
+            "draft/homework_sheet.md",
+            "draft/PACKAGE_CHECKLIST.md",
+            "draft/USAGE_GUIDE.md"
+          ],
+          "gates": ["文档完整可用"]
+        }
+      ]
+    }
+  },
+  
+  "hooks": {
+    "pre_task": [
+      {
+        "name": "log_task_start",
+        "script": ".claude/hooks/log_subagent_event.py",
+        "args": ["start", "{task_id}", "{agent}"]
+      },
+      {
+        "name": "select_model",
+        "inline": "根据任务类型自动选择最佳模型"
+      }
+    ],
+    
+    "post_task": [
+      {
+        "name": "log_task_complete",
+        "script": ".claude/hooks/log_subagent_event.py",
+        "args": ["complete", "{task_id}", "{agent}"]
+      },
+      {
+        "name": "format_markdown",
+        "script": ".claude/hooks/markdown_formatter.py",
+        "args": ["{output_file}"]
+      },
+      {
+        "name": "update_status",
+        "inline": "更新 state/STATUS.yaml 中的任务状态"
+      }
+    ],
+    
+    "on_error": [
+      {
+        "name": "log_error",
+        "inline": "记录错误到 state/LOG.md"
+      },
+      {
+        "name": "fallback_model",
+        "inline": "切换到备用模型重试"
+      }
+    ],
+    
+    "on_user_confirmation": [
+      {
+        "name": "pause_workflow",
+        "inline": "暂停工作流，等待用户输入"
+      },
+      {
+        "name": "display_proposal",
+        "inline": "向用户展示核心大任务建议"
+      },
+      {
+        "name": "record_decision",
+        "inline": "记录用户决策到 BIG_TASK_PROPOSAL.md"
+      }
+    ]
+  },
+  
+  "state_management": {
+    "state_file": "state/STATUS.yaml",
+    "log_file": "state/LOG.md",
+    "format": "yaml",
+    "auto_sync": true,
+    "backup": true,
+    "backup_dir": "state/backups"
+  },
+  
+  "ui": {
+    "theme": "modern",
+    "language": "zh-CN",
+    "show_progress": true,
+    "show_cost": true,
+    "show_tokens": true,
+    "markdown_preview": true
+  },
+  
+  "cost_tracking": {
+    "enabled": true,
+    "budget_alert": 5.0,
+    "currency": "USD",
+    "log_to_file": "state/cost.log"
+  },
+  
+  "caching": {
+    "enabled": true,
+    "cache_dir": ".cache",
+    "ttl": 3600,
+    "cache_strategies": [
+      "material_content",
+      "curriculum_standards",
+      "model_responses"
+    ]
+  },
+  
+  "features": {
+    "auto_backup": true,
+    "parallel_tasks": false,
+    "smart_retry": true,
+    "cost_optimization": true,
+    "quality_gates": true,
+    "user_confirmation_points": ["big_task_proposal"]
+  }
+}

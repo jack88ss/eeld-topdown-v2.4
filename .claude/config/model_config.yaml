@@ -1,0 +1,361 @@
+# 多模型配置文件 - 根据任务类型智能选择模型
+# 支持 OpenRouter API 和其他 API 提供商
+
+version: "1.0"
+last_updated: 2026-01-17T14:30:00Z
+
+# ============================================
+# API 提供商配置
+# ============================================
+providers:
+  # OpenRouter - 支持多种模型的统一接口
+  openrouter:
+    enabled: true
+    api_base: "https://openrouter.ai/api/v1"
+    api_key_env: "OPENROUTER_API_KEY"  # 从环境变量读取
+    default_headers:
+      HTTP-Referer: "https://github.com/elementary-english-lesson-designer"
+      X-Title: "Elementary English Lesson Designer"
+  
+  # Claude API（原生）
+  anthropic:
+    enabled: true
+    api_base: "https://api.anthropic.com/v1"
+    api_key_env: "ANTHROPIC_API_KEY"
+  
+  # OpenAI API
+  openai:
+    enabled: false
+    api_base: "https://api.openai.com/v1"
+    api_key_env: "OPENAI_API_KEY"
+
+# ============================================
+# 模型定义 - 按任务特点分类
+# ============================================
+models:
+  # ------------------------------------
+  # 长文本处理模型（适合读取教材、PDF）
+  # ------------------------------------
+  long_context:
+    primary:
+      name: "google/gemini-pro-1.5"
+      provider: "openrouter"
+      context_window: 1000000  # 100万token
+      cost_per_1k_tokens:
+        input: 0.00125
+        output: 0.005
+      max_tokens: 8192
+      temperature: 0.3
+      use_cases:
+        - "读取大型PDF文件"
+        - "分析完整教材章节"
+        - "处理课程标准文档"
+      notes: "Gemini Pro 1.5 支持100万token上下文，性价比高"
+    
+    fallback:
+      name: "anthropic/claude-3-haiku"
+      provider: "openrouter"
+      context_window: 200000
+      cost_per_1k_tokens:
+        input: 0.00025
+        output: 0.00125
+      max_tokens: 4096
+      temperature: 0.3
+      notes: "Claude 3 Haiku 更便宜，20万token上下文"
+  
+  # ------------------------------------
+  # 高质量思考模型（适合设计和分析）
+  # ------------------------------------
+  reasoning:
+    primary:
+      name: "anthropic/claude-3.5-sonnet"
+      provider: "anthropic"  # 使用原生API获得最佳性能
+      context_window: 200000
+      cost_per_1k_tokens:
+        input: 0.003
+        output: 0.015
+      max_tokens: 8192
+      temperature: 0.7
+      use_cases:
+        - "课程分析"
+        - "内容设计"
+        - "活动设计"
+        - "核心大任务提议"
+        - "质量审核"
+      notes: "Claude 3.5 Sonnet 最强推理能力，适合复杂教学设计"
+    
+    fallback:
+      name: "anthropic/claude-3-sonnet"
+      provider: "openrouter"
+      context_window: 200000
+      cost_per_1k_tokens:
+        input: 0.003
+        output: 0.015
+      max_tokens: 4096
+      temperature: 0.7
+  
+  # ------------------------------------
+  # 快速执行模型（适合简单任务）
+  # ------------------------------------
+  fast_execution:
+    primary:
+      name: "anthropic/claude-3-haiku"
+      provider: "openrouter"
+      context_window: 200000
+      cost_per_1k_tokens:
+        input: 0.00025
+        output: 0.00125
+      max_tokens: 4096
+      temperature: 0.5
+      use_cases:
+        - "资源协调"
+        - "格式化输出"
+        - "简单文档生成"
+        - "状态更新"
+      notes: "Claude 3 Haiku 速度快成本低"
+    
+    fallback:
+      name: "google/gemini-flash-1.5"
+      provider: "openrouter"
+      context_window: 1000000
+      cost_per_1k_tokens:
+        input: 0.000075
+        output: 0.0003
+      max_tokens: 8192
+      temperature: 0.5
+      notes: "Gemini Flash 1.5 极其便宜且快速"
+  
+  # ------------------------------------
+  # 创意生成模型（适合内容创作）
+  # ------------------------------------
+  creative:
+    primary:
+      name: "anthropic/claude-3.5-sonnet"
+      provider: "anthropic"
+      context_window: 200000
+      cost_per_1k_tokens:
+        input: 0.003
+        output: 0.015
+      max_tokens: 8192
+      temperature: 0.8
+      use_cases:
+        - "活动设计创意"
+        - "故事情境设计"
+        - "游戏规则设计"
+      notes: "较高temperature激发创造力"
+
+# ============================================
+# 任务-模型映射
+# ============================================
+task_model_mapping:
+  # 材料审核阶段
+  material_intake:
+    phase: "long_context"
+    reason: "需要读取大型PDF教材和课程标准文档"
+    specific_tasks:
+      - task: "读取PDF教材"
+        model: "long_context.primary"
+        chunk_strategy: "smart_chunking"  # 智能分块
+        max_chunk_size: 100000  # tokens
+      - task: "读取课程标准"
+        model: "long_context.primary"
+      - task: "生成审核报告"
+        model: "reasoning.primary"
+  
+  # 课程分析阶段
+  curriculum_analysis:
+    phase: "reasoning"
+    reason: "需要深入分析和专业判断"
+    model: "reasoning.primary"
+  
+  # 内容设计阶段
+  content_design:
+    phase: "reasoning"
+    reason: "需要教学设计专业能力"
+    model: "reasoning.primary"
+  
+  # 大任务提议阶段
+  big_task_proposal:
+    phase: "reasoning"
+    reason: "需要综合分析提出专业建议"
+    model: "reasoning.primary"
+  
+  # 活动设计阶段
+  activity_design:
+    phase: "creative"
+    reason: "需要创意和教学设计能力"
+    model: "creative.primary"
+  
+  # 资源协调阶段
+  resource_coordination:
+    phase: "fast_execution"
+    reason: "相对简单的整理和列表工作"
+    model: "fast_execution.primary"
+  
+  # 评估设计阶段
+  assessment_design:
+    phase: "reasoning"
+    reason: "需要专业的评估设计能力"
+    model: "reasoning.primary"
+  
+  # 质量审核阶段
+  quality_review:
+    phase: "reasoning"
+    reason: "需要全面审核和专业判断"
+    model: "reasoning.primary"
+  
+  # 打包发布阶段
+  package_publish:
+    phase: "fast_execution"
+    reason: "主要是格式化和整合工作"
+    model: "fast_execution.primary"
+
+# ============================================
+# 特殊处理策略
+# ============================================
+strategies:
+  # PDF文件处理策略
+  pdf_processing:
+    enabled: true
+    strategies:
+      - name: "smart_chunking"
+        description: "智能分块读取大型PDF"
+        max_chunk_size: 100000  # tokens
+        overlap: 1000  # token overlap between chunks
+        model: "long_context.primary"
+        
+      - name: "extract_then_analyze"
+        description: "先提取文本，再分析"
+        steps:
+          - "使用PDF工具提取纯文本"
+          - "使用long_context模型读取全文"
+          - "使用reasoning模型分析"
+        
+      - name: "targeted_extraction"
+        description: "定向提取相关章节"
+        steps:
+          - "识别目标单元/章节"
+          - "只提取相关页面"
+          - "使用reasoning模型分析"
+  
+  # 成本优化策略
+  cost_optimization:
+    enabled: true
+    rules:
+      - "简单任务优先使用fast_execution模型"
+      - "只在需要时使用primary模型"
+      - "自动fallback到更便宜的模型"
+      - "缓存重复的长文本输入"
+  
+  # 错误处理策略
+  error_handling:
+    enabled: true
+    rules:
+      - error: "request_too_large"
+        action: "switch_to_long_context_model"
+      - error: "context_length_exceeded"
+        action: "apply_smart_chunking"
+      - error: "rate_limit"
+        action: "fallback_to_alternative_model"
+      - error: "api_error"
+        action: "retry_with_fallback"
+
+# ============================================
+# 成本预估（仅供参考）
+# ============================================
+cost_estimation:
+  # 典型的一次完整教学设计流程
+  typical_workflow:
+    material_intake:
+      input_tokens: 150000  # 教材+课标
+      output_tokens: 2000
+      model: "long_context.primary"
+      estimated_cost: "$0.19"
+    
+    curriculum_analysis:
+      input_tokens: 10000
+      output_tokens: 3000
+      model: "reasoning.primary"
+      estimated_cost: "$0.08"
+    
+    content_design:
+      input_tokens: 8000
+      output_tokens: 4000
+      model: "reasoning.primary"
+      estimated_cost: "$0.08"
+    
+    big_task_proposal:
+      input_tokens: 6000
+      output_tokens: 2000
+      model: "reasoning.primary"
+      estimated_cost: "$0.05"
+    
+    activity_design:
+      input_tokens: 8000
+      output_tokens: 5000
+      model: "creative.primary"
+      estimated_cost: "$0.10"
+    
+    resource_coordination:
+      input_tokens: 5000
+      output_tokens: 2000
+      model: "fast_execution.primary"
+      estimated_cost: "$0.004"
+    
+    assessment_design:
+      input_tokens: 8000
+      output_tokens: 4000
+      model: "reasoning.primary"
+      estimated_cost: "$0.08"
+    
+    quality_review:
+      input_tokens: 15000
+      output_tokens: 3000
+      model: "reasoning.primary"
+      estimated_cost: "$0.09"
+    
+    package_publish:
+      input_tokens: 10000
+      output_tokens: 6000
+      model: "fast_execution.primary"
+      estimated_cost: "$0.01"
+    
+    total_estimated: "$0.67"  # 不到1美元完成一次教学设计
+
+# ============================================
+# 使用说明
+# ============================================
+usage_instructions: |
+  1. 设置环境变量：
+     export OPENROUTER_API_KEY="your-openrouter-key"
+     export ANTHROPIC_API_KEY="your-anthropic-key"  # 可选
+  
+  2. 系统会自动根据任务类型选择合适的模型
+  
+  3. 遇到大文件时自动切换到long_context模型
+  
+  4. 成本优化：简单任务使用便宜模型，复杂任务使用高级模型
+  
+  5. 查看日志了解实际使用的模型和成本
+
+# ============================================
+# 推荐配置
+# ============================================
+recommendations:
+  for_cost_sensitive:
+    description: "成本敏感场景，优先使用便宜模型"
+    changes:
+      - "reasoning.primary 改为 anthropic/claude-3-sonnet"
+      - "long_context.primary 改为 google/gemini-flash-1.5"
+  
+  for_quality_focused:
+    description: "质量优先场景，使用最好的模型"
+    changes:
+      - "所有任务使用 anthropic/claude-3.5-sonnet"
+      - "长文本使用 google/gemini-pro-1.5"
+  
+  for_speed_focused:
+    description: "速度优先场景"
+    changes:
+      - "大部分任务使用 anthropic/claude-3-haiku"
+      - "创意任务使用 anthropic/claude-3.5-sonnet"
